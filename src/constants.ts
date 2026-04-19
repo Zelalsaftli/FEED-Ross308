@@ -11,13 +11,13 @@ export const DEFAULT_INGREDIENTS_LIST: string[] = [
   "ذرة صفراء (7.5)",
   "كسبة فول الصويا (44)",
   "زيت نباتي",
-  "نحاته",
-  "فوسفات كالسيوم ثنائية",
+  "الحجر الكلسي",
+  "ديكالسيوم فوسفات",
   "ملح طعام",
   "سلفات الصوديوم",
   "بيكربونات الصوديوم",
   "اللايسين (78%)",
-  "الميثيونين + السيستين",
+  "الميثيونين الصناعي",
   "الثريونين (L-Threonine)",
   "الفالين",
   "إيزوليوسين",
@@ -50,29 +50,45 @@ export const DEFAULT_INGREDIENTS: Ingredient[] = DEFAULT_INGREDIENTS_LIST.map((n
   let price = 0.5; // Default price
   
   if (name.includes("ذرة")) {
-    nutrition.ME = 3350; nutrition.CP = 7.5; nutrition.Ca = 0.02; nutrition.avP = 0.08;
-    nutrition.dLys = 0.20; nutrition.dMet = 0.15; nutrition.dThr = 0.25; nutrition.dVal = 0.35;
-    nutrition.choline = 600; nutrition.K = 0.33;
+    nutrition.ME = 3250; nutrition.CP = 7.5; nutrition.Ca = 0.01; nutrition.avP = 0.05;
+    nutrition.Na = 0.003; nutrition.K = 0.3; nutrition.Cl = 0.09;
+    nutrition.dLys = 0.20; nutrition.dMet = 0.25; nutrition.dThr = 0.28; 
+    nutrition.dVal = 0.31; nutrition.dIso = 0.25; nutrition.dArg = 0.33;
+    nutrition.dTry = 0.05; nutrition.dGlySer = 0.55; nutrition.dPhe = 0.30; nutrition.dPheTyr = 0.55;
+    nutrition.choline = 600;
     price = 0.28;
   } else if (name.includes("صويا")) {
-    nutrition.ME = 2230; nutrition.CP = 44; nutrition.Ca = 0.25; nutrition.avP = 0.20;
-    nutrition.dLys = 2.65; nutrition.dMet = 0.60; nutrition.dThr = 1.65; nutrition.dVal = 2.00;
-    nutrition.choline = 2600; nutrition.K = 1.95;
+    nutrition.ME = 2250; nutrition.CP = 44; nutrition.Ca = 0.29; nutrition.avP = 0.3;
+    nutrition.Na = 0.014; nutrition.K = 2.08; nutrition.Cl = 0.03;
+    nutrition.dLys = 2.52; nutrition.dMet = 1.08; nutrition.dThr = 1.52; 
+    nutrition.dVal = 1.87; nutrition.dIso = 1.79; nutrition.dArg = 3.0;
+    nutrition.dTry = 0.55; nutrition.dGlySer = 3.72; nutrition.dPhe = 2.02; nutrition.dPheTyr = 3.47;
+    nutrition.choline = 2600;
     price = 0.58;
   } else if (name.includes("زيت")) {
     nutrition.ME = 8800; price = 1.35;
   } else if (name.includes("اللايسين")) {
-    nutrition.dLys = 78.4; price = 2.15; // Standard 98.5% pure L-Lysine HCl is ~78.4% Lysine
+    nutrition.dLys = 74; price = 2.15;
   } else if (name.includes("الميثيونين")) {
-    nutrition.dMet = 99; price = 3.40;
+    nutrition.dMet = 94; price = 3.40;
   } else if (name.includes("الثريونين")) {
-    nutrition.dThr = 98.5; price = 2.25;
-  } else if (name.includes("نحاته")) {
-    nutrition.Ca = 38; price = 0.06;
+    nutrition.dThr = 90; price = 2.25;
+  } else if (name.includes("الفالين")) {
+    nutrition.dVal = 96; price = 4.5;
+  } else if (name.includes("إيزوليوسين")) {
+    nutrition.dIso = 96; price = 5.0;
+  } else if (name.includes("أرجنين")) {
+    nutrition.dArg = 96; price = 6.0;
+  } else if (name.includes("كلسي") || name.includes("نحاته")) {
+    nutrition.Ca = 36; price = 0.06;
   } else if (name.includes("فوسفات")) {
-    nutrition.Ca = 24; nutrition.avP = 18; price = 0.95;
+    nutrition.Ca = 22; nutrition.avP = 16.5; price = 0.95;
+  } else if (name.includes("سلفات الصوديوم")) {
+    nutrition.Na = 32; price = 0.45;
+  } else if (name.includes("بيكربونات الصوديوم")) {
+    nutrition.Na = 27; price = 0.55;
   } else if (name.includes("الكولين")) {
-    nutrition.choline = 600000; // 60% choline chloride
+    nutrition.choline = 550000; // 55% choline content for 60% chloride product
     price = 1.25;
   } else if (name.includes("أنزيم")) {
     // Sample matrix values for 1kg of Enzyme

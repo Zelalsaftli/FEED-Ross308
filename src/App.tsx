@@ -160,14 +160,28 @@ export default function App() {
 
   const getRecommendations = () => {
     const recs: string[] = [];
-    const keys: (keyof Nutrition)[] = ['ME', 'CP', 'Ca', 'avP', 'K', 'Na', 'Cl', 'dLys', 'dMet', 'dThr'];
+    const keys: (keyof Nutrition)[] = ['ME', 'CP', 'Ca', 'avP', 'K', 'Na', 'Cl', 'dLys', 'dMet', 'dThr', 'dArg', 'dVal', 'dIso', 'dTry', 'dGlySer', 'dPhe', 'dPheTyr'];
     
     keys.forEach(k => {
       const act = actualNutrition[k] || 0;
       const req = currentRequirement[k] || 0;
       if (req > 0) {
         const diffPercent = ((act - req) / req) * 100;
-        const displayLabel = k === 'avP' ? 'av.P' : k === 'dMet' ? 'Met+Cys' : k === 'K' ? 'Potassium (K)' : k;
+        const displayLabelMap: Record<string, string> = {
+          'avP': 'av.P',
+          'dMet': 'Met',
+          'K': 'Potassium (K)',
+          'dLys': 'Lys',
+          'dThr': 'Thr',
+          'dArg': 'Arg',
+          'dVal': 'Val',
+          'dIso': 'Iso',
+          'dTry': 'Try',
+          'dGlySer': 'Gly+Ser',
+          'dPhe': 'Phe',
+          'dPheTyr': 'Phe+Tyr'
+        };
+        const displayLabel = displayLabelMap[k] || k;
         if (diffPercent > 5) recs.push(`العنصر ${displayLabel} مرتفع بنسبة ${diffPercent.toFixed(1)}% عن الاحتياج.`);
         if (diffPercent < -5) recs.push(`العنصر ${displayLabel} منخفض بنسبة ${Math.abs(diffPercent).toFixed(1)}% عن الاحتياج.`);
       }
@@ -188,7 +202,7 @@ export default function App() {
     { key: 'Na', label: 'Na' },
     { key: 'Cl', label: 'Cl' },
     { key: 'dLys', label: 'Lys' },
-    { key: 'dMet', label: 'Met+Cys' },
+    { key: 'dMet', label: 'Met' },
     { key: 'dThr', label: 'Thr' },
     { key: 'K', label: 'Potassium (K %)' },
     { key: 'dVal', label: 'Val' },
@@ -197,6 +211,7 @@ export default function App() {
     { key: 'dGlySer', label: 'Gly+Ser' },
     { key: 'dPhe', label: 'Phe' },
     { key: 'dPheTyr', label: 'Phe+Tyr' },
+    { key: 'dTry', label: 'Try' },
     { key: 'choline', label: 'Choline (mg/kg)' },
   ];
 
