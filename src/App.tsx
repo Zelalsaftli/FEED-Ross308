@@ -329,26 +329,14 @@ export default function App() {
                   </div>
                   
                   <div className="overflow-x-auto">
-                    <table className="w-full text-[11px] min-w-[1200px]">
-                      <thead className="bg-gray-50 text-gray-500 uppercase tracking-wider text-center">
-                        <tr className="border-b border-gray-100">
-                          <th className="px-4 py-3 text-right sticky right-0 bg-gray-50 z-10 w-40">المكون</th>
-                          <th className="px-2 py-3 w-20">النسبة (%)</th>
-                          <th className="px-2 py-3 w-16 text-blue-600">ME</th>
-                          <th className="px-2 py-3 w-16 text-blue-600">CP %</th>
-                          <th className="px-2 py-3 w-16">Ca</th>
-                          <th className="px-2 py-3 w-16">av.P</th>
-                          <th className="px-2 py-3 w-16">K %</th>
-                          <th className="px-2 py-3 w-16">Na</th>
-                          <th className="px-2 py-3 w-16">dLys</th>
-                          <th className="px-2 py-3 w-16">dM+C</th>
-                          <th className="px-2 py-3 w-16">dThr</th>
-                          <th className="px-2 py-3 w-16">dVal</th>
-                          <th className="px-2 py-3 w-16">dIso</th>
-                          <th className="px-2 py-3 w-16 text-purple-600">Choline</th>
-                          <th className="px-2 py-3 w-20 text-green-600">السعر ($)</th>
-                          <th className="px-2 py-3 w-24">التكلفة</th>
-                          <th className="px-4 py-3 w-12"></th>
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-gray-500 uppercase tracking-wider text-center border-b border-gray-100">
+                        <tr>
+                          <th className="px-6 py-4 text-right sticky right-0 bg-gray-50 z-10">المكون</th>
+                          <th className="px-4 py-4 w-32 font-bold text-gray-900 border-x border-gray-100">نسبة الإدخال (%)</th>
+                          <th className="px-4 py-4 w-32 font-bold text-green-700">السعر ($/كغ)</th>
+                          <th className="px-4 py-4 w-32 font-bold text-gray-900">تكلفة المكون</th>
+                          <th className="px-4 py-4 w-20"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -362,138 +350,42 @@ export default function App() {
                           activeIngredients.map((ing) => {
                             const mixItem = mixture.find(m => m.ingredientId === ing.id);
                             return (
-                              <tr key={ing.id} className="hover:bg-gray-50 transition-colors group">
-                                <td className="px-4 py-3 font-bold text-gray-700 sticky right-0 bg-white group-hover:bg-gray-50 z-10 border-l border-gray-50">
+                              <tr key={ing.id} className="hover:bg-gray-50 transition-colors group border-b border-gray-50">
+                                <td className="px-6 py-4 font-bold text-gray-800 sticky right-0 bg-white group-hover:bg-gray-50 z-10">
                                   <input 
                                     type="text"
                                     value={ing.name}
                                     onChange={(e) => setIngredients(prev => prev.map(i => i.id === ing.id ? { ...i, name: e.target.value } : i))}
-                                    className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none hover:bg-gray-100 rounded px-1 transition-colors"
+                                    className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none hover:bg-gray-100 rounded px-2 py-1 transition-colors"
                                   />
                                 </td>
-                                <td className="px-1 py-3 text-center">
+                                <td className="px-4 py-4 text-center border-x border-gray-50">
                                   <input 
                                     type="number"
                                     step="0.01"
                                     value={mixItem?.percentage || ''}
                                     placeholder="0.00"
                                     onChange={(e) => handlePercentageChange(ing.id, e.target.value)}
-                                    className="w-16 bg-gray-50 border border-gray-200 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-green-500 outline-none text-xs"
+                                    className="w-24 bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-center font-bold text-gray-900 focus:ring-2 focus:ring-green-500 outline-none shadow-sm"
                                   />
                                 </td>
-                                <td className="px-1 py-3">
-                                  <input 
-                                    type="number"
-                                    value={ing.nutrition.ME}
-                                    onChange={(e) => updateIngredientNutrition(ing.id, 'ME', e.target.value)}
-                                    className="w-14 bg-blue-50/50 border border-blue-100 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-blue-500 outline-none text-[10px]"
-                                  />
-                                </td>
-                                <td className="px-1 py-3">
-                                  <input 
-                                    type="number"
-                                    value={ing.nutrition.CP}
-                                    onChange={(e) => updateIngredientNutrition(ing.id, 'CP', e.target.value)}
-                                    className="w-14 bg-blue-50/50 border border-blue-100 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-blue-500 outline-none text-[10px]"
-                                  />
-                                </td>
-                                <td className="px-1 py-3">
-                                  <input 
-                                    type="number"
-                                    value={ing.nutrition.Ca}
-                                    onChange={(e) => updateIngredientNutrition(ing.id, 'Ca', e.target.value)}
-                                    className="w-12 bg-gray-50 border border-gray-200 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-gray-300 outline-none text-[10px]"
-                                  />
-                                </td>
-                                <td className="px-1 py-3">
-                                  <input 
-                                    type="number"
-                                    value={ing.nutrition.avP}
-                                    onChange={(e) => updateIngredientNutrition(ing.id, 'avP', e.target.value)}
-                                    className="w-12 bg-gray-50 border border-gray-200 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-gray-300 outline-none text-[10px]"
-                                  />
-                                </td>
-                                <td className="px-1 py-3">
-                                  <input 
-                                    type="number"
-                                    value={ing.nutrition.K}
-                                    onChange={(e) => updateIngredientNutrition(ing.id, 'K', e.target.value)}
-                                    className="w-12 bg-orange-50/50 border border-orange-100 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-orange-300 outline-none text-[10px]"
-                                  />
-                                </td>
-                                <td className="px-1 py-3">
-                                  <input 
-                                    type="number"
-                                    value={ing.nutrition.Na}
-                                    onChange={(e) => updateIngredientNutrition(ing.id, 'Na', e.target.value)}
-                                    className="w-12 bg-gray-50 border border-gray-200 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-gray-300 outline-none text-[10px]"
-                                  />
-                                </td>
-                                <td className="px-1 py-3">
-                                  <input 
-                                    type="number"
-                                    value={ing.nutrition.dLys}
-                                    onChange={(e) => updateIngredientNutrition(ing.id, 'dLys', e.target.value)}
-                                    className="w-12 bg-gray-50 border border-gray-200 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-gray-300 outline-none text-[10px]"
-                                  />
-                                </td>
-                                <td className="px-1 py-3">
-                                  <input 
-                                    type="number"
-                                    value={ing.nutrition.dMet}
-                                    onChange={(e) => updateIngredientNutrition(ing.id, 'dMet', e.target.value)}
-                                    className="w-12 bg-gray-50 border border-gray-200 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-gray-300 outline-none text-[10px]"
-                                  />
-                                </td>
-                                <td className="px-1 py-3">
-                                  <input 
-                                    type="number"
-                                    value={ing.nutrition.dThr}
-                                    onChange={(e) => updateIngredientNutrition(ing.id, 'dThr', e.target.value)}
-                                    className="w-12 bg-gray-50 border border-gray-200 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-gray-300 outline-none text-[10px]"
-                                  />
-                                </td>
-                                <td className="px-1 py-3">
-                                  <input 
-                                    type="number"
-                                    value={ing.nutrition.dVal}
-                                    onChange={(e) => updateIngredientNutrition(ing.id, 'dVal', e.target.value)}
-                                    className="w-12 bg-gray-50 border border-gray-200 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-gray-300 outline-none text-[10px]"
-                                  />
-                                </td>
-                                <td className="px-1 py-3">
-                                  <input 
-                                    type="number"
-                                    value={ing.nutrition.dIso}
-                                    onChange={(e) => updateIngredientNutrition(ing.id, 'dIso', e.target.value)}
-                                    className="w-12 bg-gray-50 border border-gray-200 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-gray-300 outline-none text-[10px]"
-                                  />
-                                </td>
-                                <td className="px-1 py-3">
-                                  <input 
-                                    type="number"
-                                    value={ing.nutrition.choline}
-                                    onChange={(e) => updateIngredientNutrition(ing.id, 'choline', e.target.value)}
-                                    className="w-14 bg-purple-50 border border-purple-100 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-purple-300 outline-none text-[10px]"
-                                  />
-                                </td>
-                                <td className="px-1 py-3">
+                                <td className="px-4 py-4 text-center">
                                   <input 
                                     type="number"
                                     value={ing.price}
                                     onChange={(e) => handlePriceChange(ing.id, e.target.value)}
-                                    className="w-16 bg-green-50/50 border border-green-100 rounded px-1 py-1 text-center font-mono focus:bg-white focus:ring-1 focus:ring-green-500 outline-none text-xs"
+                                    className="w-24 bg-green-50/30 border border-green-100 rounded-lg px-2 py-1.5 text-center font-bold text-green-700 focus:ring-2 focus:ring-green-500 outline-none shadow-sm"
                                   />
                                 </td>
-                                <td className="px-2 py-3 text-center font-mono text-gray-500">
+                                <td className="px-4 py-4 text-center font-bold text-gray-600 bg-gray-50/30">
                                   ${((ing.price * (mixItem?.percentage || 0)) / 100).toFixed(4)}
                                 </td>
-                                <td className="px-4 py-3 text-center">
+                                <td className="px-4 py-4 text-center">
                                   <button 
                                     onClick={() => removeIngredientFromMixture(ing.id)}
-                                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-all"
+                                    className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-4 h-4" />
                                   </button>
                                 </td>
                               </tr>
