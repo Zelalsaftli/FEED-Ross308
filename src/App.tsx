@@ -310,56 +310,6 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <AnimatePresence mode="wait">
-          {/* TO-DO: Implement Phases selection here globally or in results */}
-          {activeTab === 'results' && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mb-8 bg-blue-50 border border-blue-100 rounded-xl p-6 flex flex-col md:flex-row items-center gap-6"
-            >
-              <div className="flex-1">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="font-bold text-blue-900">نظام التغذية والمرحلة</h3>
-                <button 
-                  onClick={resetRequirementsToDefault}
-                  className="px-3 py-1 bg-white/50 text-blue-700 rounded-lg text-[10px] font-bold hover:bg-white transition-all flex items-center gap-1 border border-blue-200"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  استعادة دليل Ross 308
-                </button>
-              </div>
-                <p className="text-sm text-blue-700">اختر عدد المراحل والمرحلة الحالية للمقارنة الدقيقة.</p>
-              </div>
-              <div className="flex flex-wrap gap-4 items-center">
-                <div className="flex gap-1 bg-white p-1 rounded-lg border border-blue-200">
-                  {[3, 4, 5].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => {
-                        setSelectedPhaseCount(n);
-                        setCurrentPhaseIndex(0);
-                      }}
-                      className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${selectedPhaseCount === n ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                    >
-                      {n} مراحل
-                    </button>
-                  ))}
-                </div>
-                <div className="h-8 w-px bg-blue-200 hidden md:block"></div>
-                <select 
-                  value={currentPhaseIndex}
-                  onChange={(e) => setCurrentPhaseIndex(parseInt(e.target.value))}
-                  className="bg-white border border-blue-200 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  {availablePhases.map((p, idx) => (
-                    <option key={idx} value={idx}>{p.name} ({p.days})</option>
-                  ))}
-                </select>
-              </div>
-            </motion.div>
-          )}
-
           {activeTab === 'mixture' && (
             <motion.div
               key="mixture"
@@ -615,11 +565,54 @@ export default function App() {
           {activeTab === 'results' && (
             <motion.div
               key="results"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
               className="space-y-8 pb-20"
             >
+              {/* Phase Selection (Consolidated here) */}
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 flex flex-col md:flex-row items-center gap-6 mb-8">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-bold text-blue-900">نظام التغذية والمرحلة</h3>
+                    <button 
+                      onClick={resetRequirementsToDefault}
+                      className="px-3 py-1 bg-white/50 text-blue-700 rounded-lg text-[10px] font-bold hover:bg-white transition-all flex items-center gap-1 border border-blue-200"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      استعادة دليل Ross 308
+                    </button>
+                  </div>
+                  <p className="text-sm text-blue-700">اختر عدد المراحل والمرحلة الحالية للمقارنة الدقيقة.</p>
+                </div>
+                <div className="flex flex-wrap gap-4 items-center">
+                  <div className="flex gap-1 bg-white p-1 rounded-lg border border-blue-200">
+                    {[3, 4, 5].map(n => (
+                      <button
+                        key={n}
+                        onClick={() => {
+                          setSelectedPhaseCount(n);
+                          setCurrentPhaseIndex(0);
+                        }}
+                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${selectedPhaseCount === n ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                      >
+                        {n} مراحل
+                      </button>
+                    ))}
+                  </div>
+                  <div className="h-8 w-px bg-blue-200 hidden md:block"></div>
+                  <select 
+                    value={currentPhaseIndex}
+                    onChange={(e) => setCurrentPhaseIndex(parseInt(e.target.value))}
+                    className="bg-white border border-blue-200 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    {availablePhases.map((p, idx) => (
+                      <option key={idx} value={idx}>{p.name} ({p.days})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               {/* Energy & Minerals Table */}
               <section className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="px-8 py-6 bg-gray-50 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
