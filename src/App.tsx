@@ -13,13 +13,16 @@ import {
   Plus,
   DollarSign,
   Scale,
-  Printer
+  Printer,
+  History,
+  Copy,
+  ArrowRightLeft
 } from 'lucide-react';
-import { Ingredient, Nutrition, PhaseRequirement, FeedEntry } from './types';
+import { Ingredient, Nutrition, PhaseRequirement, FeedEntry, Snapshot } from './types';
 import { DEFAULT_INGREDIENTS, ROSS_308_PHASES_3, ROSS_308_PHASES_4, ROSS_308_PHASES_5, INITIAL_NUTRITION } from './constants';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results'>('mixture');
+  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare'>('mixture');
   
   // Persistence Loading
   const [ingredients, setIngredients] = useState<Ingredient[]>(() => {
@@ -31,6 +34,13 @@ export default function App() {
     const saved = localStorage.getItem('ross308_mixture');
     return saved ? JSON.parse(saved) : [];
   });
+
+  const [snapshots, setSnapshots] = useState<Snapshot[]>(() => {
+    const saved = localStorage.getItem('ross308_snapshots');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [compareIds, setCompareIds] = useState<string[]>([]);
 
   const [selectedPhaseCount, setSelectedPhaseCount] = useState<number>(() => {
     const saved = localStorage.getItem('ross308_phaseCount');
@@ -67,6 +77,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('ross308_customPhases', JSON.stringify(allCustomPhases));
   }, [allCustomPhases]);
+
+  useEffect(() => {
+    localStorage.setItem('ross308_snapshots', JSON.stringify(snapshots));
+  }, [snapshots]);
 
   const availablePhases = allCustomPhases[selectedPhaseCount as 3|4|5] || allCustomPhases[3];
   
@@ -193,6 +207,42 @@ export default function App() {
     }
   };
 
+  const saveSnapshot = () => {
+    const name = window.prompt("ادخل اسماً لهذه الخلطة:", `خلطة ${new Date().toLocaleTimeString('ar-EG')}`);
+    if (!name) return;
+
+    const newSnapshot: Snapshot = {
+      id: `snap-${Date.now()}`,
+      name,
+      mixture: [...mixture],
+      actualNutrition: { ...actualNutrition },
+      totalCost: costPerKg * 1000,
+      timestamp: new Date().toISOString()
+    };
+
+    setSnapshots(prev => [newSnapshot, ...prev]);
+  };
+
+  const deleteSnapshot = (id: string) => {
+    if (!window.confirm("حذف هذه الخلطة المحفوظة؟")) return;
+    setSnapshots(prev => prev.filter(s => s.id !== id));
+    setCompareIds(prev => prev.filter(cid => cid !== id));
+  };
+
+  const loadSnapshot = (snapshot: Snapshot) => {
+    if (!window.confirm(`هل تريد اعتماد الخلطة "${snapshot.name}" كخلطة حالية؟ سيتم استبدال الجدول الحالي.`)) return;
+    setMixture(snapshot.mixture);
+    setActiveTab('mixture');
+  };
+
+  const toggleCompare = (id: string) => {
+    setCompareIds(prev => {
+      if (prev.includes(id)) return prev.filter(i => i !== id);
+      if (prev.length >= 2) return [prev[1], id];
+      return [...prev, id];
+    });
+  };
+
   const getEvaluation = (actual: number, required: number) => {
     if (required === 0) return { label: '-', color: 'text-gray-400' };
     const diffPercent = ((actual - required) / required) * 100;
@@ -295,6 +345,13 @@ export default function App() {
               <FileText className="w-4 h-4" />
               النتائج والتحليل
             </button>
+            <button 
+              onClick={() => setActiveTab('compare')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === 'compare' ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              <ArrowRightLeft className="w-4 h-4" />
+              مقارنة الخلطات
+            </button>
             <div className="w-px h-6 bg-gray-200 mx-1 hidden md:block"></div>
             <button 
               onClick={() => window.print()}
@@ -326,6 +383,15 @@ export default function App() {
                       تكوين الخلطة المختارة
                     </h2>
                     <div className="flex items-center gap-3">
+                       <button 
+                        onClick={saveSnapshot}
+                        disabled={mixture.length === 0}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        title="حفظ للـمقارنة"
+                       >
+                         <Save className="w-3 h-3" />
+                         حفظ الخلطة
+                       </button>
                        <button 
                         onClick={addNewIngredient}
                         className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-bold hover:bg-black transition-colors"
@@ -467,6 +533,163 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'compare' && (
+            <motion.div
+              key="compare"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="space-y-8 pb-20"
+            >
+              <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h2 className="text-2xl font-bold flex items-center gap-3">
+                      <ArrowRightLeft className="w-7 h-7 text-blue-600" />
+                      مقارنة الخلطات المحفوظة
+                    </h2>
+                    <p className="text-gray-500 mt-1">اختر خلطتين من القائمة للمقارنة بين التكلفة والتحليل الغذائي.</p>
+                  </div>
+                  <div className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-xs font-bold border border-blue-100">
+                    {snapshots.length} خلطات محفوظة
+                  </div>
+                </div>
+
+                {snapshots.length === 0 ? (
+                  <div className="py-20 text-center space-y-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                    <History className="w-12 h-12 text-gray-300 mx-auto" />
+                    <p className="text-gray-400 font-medium">لا توجد خلطات محفوظة للمقارنة بعد.</p>
+                    <button 
+                      onClick={() => setActiveTab('mixture')}
+                      className="text-blue-600 font-bold hover:underline"
+                    >
+                      اذهب للخلطة الحالية وقم بحفظ لقطة (Snapshot)
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
+                    {snapshots.map(snap => (
+                      <div 
+                        key={snap.id}
+                        onClick={() => toggleCompare(snap.id)}
+                        className={`p-5 rounded-2xl border-2 transition-all cursor-pointer relative group ${compareIds.includes(snap.id) ? 'border-blue-500 bg-blue-50 shadow-md ring-4 ring-blue-50' : 'border-gray-100 bg-white hover:border-blue-200 hover:shadow-sm'}`}
+                      >
+                        {compareIds.includes(snap.id) && (
+                          <div className="absolute top-4 left-4 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xs">
+                            {compareIds.indexOf(snap.id) + 1}
+                          </div>
+                        )}
+                        <div className="flex items-start justify-between mb-3">
+                          <h4 className="font-bold text-gray-900 truncate pl-8">{snap.name}</h4>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); deleteSnapshot(snap.id); }}
+                            className="p-1.5 text-gray-300 hover:text-red-500 rounded-lg hover:bg-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-[10px] font-bold">
+                          <div className="bg-gray-100 p-2 rounded-lg text-gray-600">
+                            <p className="opacity-60 mb-1 tracking-wider uppercase">التكلفة</p>
+                            <p className="text-sm font-mono">${(snap.totalCost).toFixed(2)}</p>
+                          </div>
+                          <div className="bg-gray-100 p-2 rounded-lg text-gray-600">
+                            <p className="opacity-60 mb-1 tracking-wider uppercase">التاريخ</p>
+                            <p className="text-[9px]">{new Date(snap.timestamp).toLocaleDateString('ar-EG')}</p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); loadSnapshot(snap); }}
+                          className="w-full mt-4 py-2 border border-blue-200 rounded-xl text-blue-600 text-[10px] font-bold hover:bg-white transition-all transform group-hover:translate-y-0 translate-y-2 opacity-0 group-hover:opacity-100"
+                        >
+                          اعتماد كخلطة حالية
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {compareIds.length === 2 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-12 overflow-hidden border border-gray-200 rounded-3xl bg-white shadow-xl"
+                  >
+                    <div className="p-6 bg-gray-900 text-white flex items-center justify-between">
+                      <h3 className="font-bold flex items-center gap-2">
+                        <TrendingDown className="w-5 h-5 text-blue-400" />
+                        التحليل المقارن
+                      </h3>
+                      <button 
+                        onClick={() => setCompareIds([])}
+                        className="text-xs opacity-60 hover:opacity-100 underline"
+                      >
+                        إلغاء التحديد
+                      </button>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 border-b border-gray-100">
+                          <tr>
+                            <th className="px-8 py-5 text-right font-bold text-gray-500">العنصر</th>
+                            {[0, 1].map(idx => {
+                              const snap = snapshots.find(s => s.id === compareIds[idx]);
+                              return snap && (
+                                <th key={idx} className={`px-8 py-5 text-center bg-gray-50/50 ${idx === 0 ? 'border-r border-gray-100' : ''}`}>
+                                  <div className="text-[10px] uppercase text-gray-400 mb-1">الخلطة {idx + 1}</div>
+                                  <div className="text-blue-900 font-bold">{snap.name}</div>
+                                </th>
+                              );
+                            })}
+                            <th className="px-8 py-5 text-center bg-blue-50/50 font-bold text-blue-900">الفرق</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 uppercase font-mono tracking-tight">
+                          <tr className="bg-blue-50/20">
+                            <td className="px-8 py-4 font-bold text-blue-900">سعر الطن ($)</td>
+                            {[0, 1].map(idx => {
+                              const snap = snapshots.find(s => s.id === compareIds[idx]);
+                              return snap && (
+                                <td key={idx} className={`px-8 py-4 text-center font-bold text-lg ${idx === 0 ? 'border-r border-gray-100' : ''}`}>
+                                  ${snap.totalCost.toFixed(2)}
+                                </td>
+                              );
+                            })}
+                            <td className={`px-8 py-4 text-center font-black text-xl ${(snapshots.find(s => s.id === compareIds[0])?.totalCost || 0) < (snapshots.find(s => s.id === compareIds[1])?.totalCost || 0) ? 'text-green-600' : 'text-red-500'}`}>
+                              ${Math.abs((snapshots.find(s => s.id === compareIds[0])?.totalCost || 0) - (snapshots.find(s => s.id === compareIds[1])?.totalCost || 0)).toFixed(2)}
+                            </td>
+                          </tr>
+                          {[
+                            { k: 'ME', l: 'الطاقة (kcal)' },
+                            { k: 'CP', l: 'بروتين (%)' },
+                            { k: 'Ca', l: 'كالسيوم (%)' },
+                            { k: 'avP', l: 'فسفور (%)' },
+                            { k: 'dLys', l: 'لايسين (%)' },
+                            { k: 'dMet', l: 'ميثيونين (%)' }
+                          ].map(({ k, l }) => {
+                            const val1 = snapshots.find(s => s.id === compareIds[0])?.actualNutrition[k as keyof Nutrition] || 0;
+                            const val2 = snapshots.find(s => s.id === compareIds[1])?.actualNutrition[k as keyof Nutrition] || 0;
+                            const diff = val1 - val2;
+                            return (
+                              <tr key={k} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-8 py-4 text-gray-500 font-bold">{l}</td>
+                                <td className="px-8 py-4 text-center border-r border-gray-100">{val1.toFixed(k === 'ME' ? 0 : 3)}</td>
+                                <td className="px-8 py-4 text-center">{val2.toFixed(k === 'ME' ? 0 : 3)}</td>
+                                <td className={`px-8 py-4 text-center font-bold ${diff === 0 ? 'text-gray-400' : 'text-blue-600'}`}>
+                                  {diff > 0 ? '+' : ''}{diff.toFixed(3)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           )}

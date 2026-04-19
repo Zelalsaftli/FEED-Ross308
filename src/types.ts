@@ -38,3 +38,12 @@ export interface FeedEntry {
   ingredientId: string;
   percentage: number;
 }
+
+export interface Snapshot {
+  id: string;
+  name: string;
+  mixture: FeedEntry[];
+  actualNutrition: Nutrition;
+  totalCost: number;
+  timestamp: string;
+}
