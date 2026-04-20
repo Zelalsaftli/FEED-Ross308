@@ -41,6 +41,8 @@ export const DEFAULT_INGREDIENTS_LIST: string[] = [
   "بروبيونات صوديوم",
   "بروبيونات كالسيوم",
   "خميرة",
+  "Creamino (GAA)",
+  "Adimix (Butyrate)",
   "فيتامين/معادن (Premix)"
 ];
 
@@ -68,36 +70,90 @@ export const DEFAULT_INGREDIENTS: Ingredient[] = DEFAULT_INGREDIENTS_LIST.map((n
   } else if (name.includes("زيت")) {
     nutrition.ME = 8800; price = 1.35;
   } else if (name.includes("اللايسين")) {
-    nutrition.dLys = 74; price = 2.15;
+    nutrition.dLys = 74; price = 2.1;
   } else if (name.includes("الميثيونين")) {
-    nutrition.dMet = 94; price = 3.40;
+    nutrition.dMet = 94; price = 3.6;
   } else if (name.includes("الثريونين")) {
-    nutrition.dThr = 90; price = 2.25;
+    nutrition.dThr = 90; price = 2.7;
   } else if (name.includes("الفالين")) {
-    nutrition.dVal = 96; price = 4.5;
+    nutrition.dVal = 96; price = 7;
   } else if (name.includes("إيزوليوسين")) {
-    nutrition.dIso = 96; price = 5.0;
+    nutrition.dIso = 96; price = 7;
   } else if (name.includes("أرجنين")) {
-    nutrition.dArg = 96; price = 6.0;
+    nutrition.dArg = 96; price = 9.25;
   } else if (name.includes("كلسي") || name.includes("نحاته")) {
-    nutrition.Ca = 36; price = 0.06;
+    nutrition.Ca = 36; price = 0.04;
   } else if (name.includes("فوسفات")) {
-    nutrition.Ca = 22; nutrition.avP = 16.5; price = 0.95;
+    nutrition.Ca = 22; nutrition.avP = 16.5; price = 0.935;
+  } else if (name.includes("ملح")) {
+    nutrition.Na = 39.3; nutrition.Cl = 60.7; price = 0.1;
   } else if (name.includes("سلفات الصوديوم")) {
-    nutrition.Na = 32; price = 0.45;
+    nutrition.Na = 32; price = 0.9;
   } else if (name.includes("بيكربونات الصوديوم")) {
-    nutrition.Na = 27; price = 0.55;
+    nutrition.Na = 27; price = 0.75;
   } else if (name.includes("الكولين")) {
     nutrition.choline = 550000; // 55% choline content for 60% chloride product
-    price = 1.25;
+    price = 1.2;
+  } else if (name.includes("الفيتاز")) {
+    nutrition.ME = 470000; nutrition.CP = 3000; nutrition.Ca = 1100;
+    nutrition.avP = 900; nutrition.Na = 45; nutrition.dLys = 100;
+    nutrition.dArg = 100; nutrition.dMet = 80; nutrition.dThr = 80;
+    nutrition.dVal = 110; nutrition.dIso = 110;
+    price = 25.0;
+  } else if (name.includes("بروتياز")) {
+    nutrition.ME = 100000; nutrition.CP = 3000; nutrition.Ca = 300;
+    nutrition.avP = 400; nutrition.Na = 5; nutrition.dLys = 50;
+    nutrition.dArg = 50; nutrition.dMet = 40; nutrition.dThr = 40;
+    nutrition.dVal = 110; nutrition.dIso = 110;
+    price = 7.0;
+  } else if (name.includes("ألياف")) {
+    nutrition.ME = 200000; nutrition.CP = 1000; nutrition.Ca = 200;
+    nutrition.avP = 200; nutrition.Na = 5; nutrition.dLys = 30;
+    nutrition.dArg = 30; nutrition.dMet = 20; nutrition.dThr = 20;
+    nutrition.dVal = 110; nutrition.dIso = 110;
+    price = 42.0;
+  } else if (name.includes("مستحلب")) {
+    nutrition.ME = 30000;
+    price = 9.6;
+  } else if (name.includes("Ecobiol")) {
+    price = 9;
+  } else if (name.includes("Natuzyme")) {
+    nutrition.ME = 250000; nutrition.avP = 1500; nutrition.Ca = 1200;
+    nutrition.dLys = 500;
+    price = 9.2;
+  } else if (name.includes("Mycofung")) {
+    price = 2.25;
+  } else if (name.includes("Champrix")) {
+    price = 2;
+  } else if (name.includes("BMD")) {
+    price = 6.25;
+  } else if (name.includes("GFlu")) {
+    price = 11;
+  } else if (name.includes("Robenidine")) {
+    price = 40;
+  } else if (name.includes("كلوبيدول")) {
+    price = 15;
+  } else if (name.includes("البيتائين")) {
+    price = 3.5;
+  } else if (name.includes("قشور رمان")) {
+    price = 0.4;
+  } else if (name.includes("بروبيونات صوديوم")) {
+    price = 5;
+  } else if (name.includes("بروبيونات كالسيوم")) {
+    price = 5;
+  } else if (name.includes("خميرة")) {
+    price = 2.7;
+  } else if (name.includes("Creamino") || name.includes("غواندينو")) {
+    nutrition.ME = 80000; // Energy sparing effect
+    price = 3.5;
+  } else if (name.includes("Adimix") || name.includes("بوتيريك")) {
+    nutrition.ME = 50000; // Matrix contribution
+    price = 4.2;
   } else if (name.includes("أنزيم")) {
-    // Sample matrix values for 1kg of Enzyme
-    // If inclusion is 0.01% (0.0001 ratio), these values contribute significantly
-    nutrition.ME = 250000; // 25 kcal contribution at 0.01%
-    nutrition.avP = 1500;   // 0.15% avP contribution at 0.01%
-    nutrition.Ca = 1200;    // 0.12% Ca contribution at 0.01%
-    nutrition.dLys = 500;   // 0.05% Lys contribution at 0.01%
-    price = 15.0; // Enzymes are expensive per kg
+    // Sample matrix values for other enzymes
+    nutrition.ME = 250000; nutrition.avP = 1500; nutrition.Ca = 1200;
+    nutrition.dLys = 500;
+    price = 15.0;
   }
 
   return {
