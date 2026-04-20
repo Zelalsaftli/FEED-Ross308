@@ -1,31 +1,29 @@
 export interface Nutrition {
-  ME: number;
-  CP: number;
-  Ca: number;
-  avP: number;
-  Na: number;
-  Cl: number;
-  dLys: number;
-  dMet: number; // Will be used for d(M+C) in results if needed
-  dThr: number;
-  dVal: number;
-  dIso: number;
-  dArg: number;
-  dGlySer: number;
-  dPhe: number;
-  dPheTyr: number;
-  choline: number;
-  K: number;
-  dTry?: number; // Optional as not in all requested tables but in requirements list
-  dLeu?: number;
-  dHis?: number;
+  [key: string]: any;
+  ME: any;
+  CP: any;
+  Ca: any;
+  avP: any;
+  Na: any;
+  Cl: any;
+  dLys: any;
+  dMet: any;
+  dThr: any;
+  dVal: any;
+  dIso: any;
+  dArg: any;
+  dGlySer: any;
+  dPhe: any;
+  dPheTyr: any;
+  choline: any;
+  K: any;
 }
 
 export interface Ingredient {
   id: string;
   name: string;
   nutrition: Nutrition;
-  price: number; // USD per kg
+  price: any;
 }
 
 export interface PhaseRequirement {
@@ -36,7 +34,7 @@ export interface PhaseRequirement {
 
 export interface FeedEntry {
   ingredientId: string;
-  percentage: number;
+  percentage: any;
 }
 
 export interface Snapshot {

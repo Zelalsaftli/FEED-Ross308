@@ -16,13 +16,23 @@ import {
   Printer,
   History,
   Copy,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Lightbulb
 } from 'lucide-react';
 import { Ingredient, Nutrition, PhaseRequirement, FeedEntry, Snapshot } from './types';
-import { DEFAULT_INGREDIENTS, ROSS_308_PHASES_3, ROSS_308_PHASES_4, ROSS_308_PHASES_5, INITIAL_NUTRITION } from './constants';
+import { DEFAULT_INGREDIENTS, ROSS_308_PHASES_3, ROSS_308_PHASES_4, ROSS_308_PHASES_5, INITIAL_NUTRITION, TOP_ADDITIVES, TOP_COMPANIES } from './constants';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare'>('mixture');
+  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives'>('mixture');
+  
+  const groupedAdditives = useMemo(() => {
+    const groups: Record<string, typeof TOP_ADDITIVES> = {};
+    TOP_ADDITIVES.forEach(add => {
+      if (!groups[add.category]) groups[add.category] = [];
+      groups[add.category].push(add);
+    });
+    return groups;
+  }, []);
   
   // Persistence Loading
   const [ingredients, setIngredients] = useState<Ingredient[]>(() => {
@@ -59,6 +69,7 @@ export default function App() {
   
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState<number>(0);
   const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null);
+  const [expandedAdditive, setExpandedAdditive] = useState<string | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
 
   // Persistence Saving
@@ -92,18 +103,19 @@ export default function App() {
 
   // Global calculations
   const totalPercentage = useMemo(() => {
-    return mixture.reduce((sum, entry) => sum + entry.percentage, 0);
+    return mixture.reduce((sum, entry) => sum + (parseFloat(entry.percentage) || 0), 0);
   }, [mixture]);
 
   const actualNutrition = useMemo(() => {
     const result = { ...INITIAL_NUTRITION };
     mixture.forEach(entry => {
       const ing = ingredients.find(i => i.id === entry.ingredientId);
-      if (ing && entry.percentage > 0) {
-        const ratio = entry.percentage / 100;
+      const percentage = parseFloat(entry.percentage) || 0;
+      if (ing && percentage > 0) {
+        const ratio = percentage / 100;
         Object.keys(result).forEach(key => {
           const k = key as keyof Nutrition;
-          (result[k] as number) += (ing.nutrition[k] || 0) * ratio;
+          (result[k] as number) += (parseFloat(ing.nutrition[k]) || 0) * ratio;
         });
       }
     });
@@ -113,41 +125,39 @@ export default function App() {
   const costPerKg = useMemo(() => {
     return mixture.reduce((sum, entry) => {
       const ing = ingredients.find(i => i.id === entry.ingredientId);
-      if (ing) return sum + (ing.price * entry.percentage / 100);
+      const percentage = parseFloat(entry.percentage) || 0;
+      const price = parseFloat(ing?.price) || 0;
+      if (ing) return sum + (price * percentage / 100);
       return sum;
     }, 0);
   }, [mixture, ingredients]);
 
   const handlePercentageChange = (id: string, value: string) => {
-    const numValue = parseFloat(value) || 0;
     setMixture(prev => prev.map(item => 
-      item.ingredientId === id ? { ...item, percentage: numValue } : item
+      item.ingredientId === id ? { ...item, percentage: value } : item
     ));
   };
 
   const handlePriceChange = (id: string, value: string) => {
-    const numValue = parseFloat(value) || 0;
     setIngredients(prev => prev.map(item => 
-      item.id === id ? { ...item, price: numValue } : item
+      item.id === id ? { ...item, price: value } : item
     ));
   };
 
   const updateIngredientNutrition = (id: string, field: keyof Nutrition, value: string) => {
-    const numValue = parseFloat(value) || 0;
     setIngredients(prev => prev.map(item => 
-      item.id === id ? { ...item, nutrition: { ...item.nutrition, [field]: numValue } } : item
+      item.id === id ? { ...item, nutrition: { ...item.nutrition, [field]: value } } : item
     ));
   };
 
   const updateRequirementValue = (key: keyof Nutrition, value: string) => {
-    const numValue = parseFloat(value) || 0;
     setAllCustomPhases(prev => {
       const currentSet = [...prev[selectedPhaseCount as 3|4|5]];
       currentSet[currentPhaseIndex] = {
         ...currentSet[currentPhaseIndex],
         nutrition: {
           ...currentSet[currentPhaseIndex].nutrition,
-          [key]: numValue
+          [key]: value
         }
       };
       return {
@@ -243,9 +253,10 @@ export default function App() {
     });
   };
 
-  const getEvaluation = (actual: number, required: number) => {
-    if (required === 0) return { label: '-', color: 'text-gray-400' };
-    const diffPercent = ((actual - required) / required) * 100;
+  const getEvaluation = (actual: number, required: any) => {
+    const req = parseFloat(required) || 0;
+    if (req === 0) return { label: '-', color: 'text-gray-400' };
+    const diffPercent = ((actual - req) / req) * 100;
     if (Math.abs(diffPercent) <= 2) return { label: 'ممتاز', color: 'text-green-500' };
     if (Math.abs(diffPercent) <= 5) return { label: 'ضمن الحدود', color: 'text-blue-500' };
     return { label: 'يحتاج تعديل', color: 'text-red-500' };
@@ -257,7 +268,7 @@ export default function App() {
     
     keys.forEach(k => {
       const act = actualNutrition[k] || 0;
-      const req = currentRequirement[k] || 0;
+      const req = parseFloat(currentRequirement[k]) || 0;
       if (req > 0) {
         const diffPercent = ((act - req) / req) * 100;
         const displayLabelMap: Record<string, string> = {
@@ -351,6 +362,13 @@ export default function App() {
             >
               <ArrowRightLeft className="w-4 h-4" />
               مقارنة الخلطات
+            </button>
+            <button 
+              onClick={() => setActiveTab('additives')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === 'additives' ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              <Lightbulb className="w-4 h-4" />
+              أفضل المضافات
             </button>
             <div className="w-px h-6 bg-gray-200 mx-1 hidden md:block"></div>
             <button 
@@ -694,6 +712,133 @@ export default function App() {
             </motion.div>
           )}
 
+          {activeTab === 'additives' && (
+            <motion.div
+              key="additives"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-12 pb-24"
+            >
+              <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8 md:p-12">
+                <div className="mb-16 text-center max-w-3xl mx-auto">
+                  <div className="w-20 h-20 bg-yellow-100 text-yellow-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                    <Lightbulb className="w-10 h-10" />
+                  </div>
+                  <h2 className="text-4xl font-black text-gray-900 mb-4">دليل المضافات العلفية العالمية</h2>
+                  <p className="text-gray-500 text-lg">استعرض أفضل المنتجات العالمية المصنفة حسب الغرض الفيزيولوجي، لدعم كفاءة التحويل وصحة القطيع.</p>
+                </div>
+
+                <div className="space-y-20">
+                  {(Object.entries(groupedAdditives) as [string, typeof TOP_ADDITIVES][]).map(([category, items]) => (
+                    <div key={category} className="space-y-8">
+                      <div className="flex items-center gap-4">
+                        <div className="h-px flex-1 bg-gradient-to-r from-transparent to-gray-200" />
+                        <h3 className="text-2xl font-black text-blue-900 bg-blue-50 px-6 py-2 rounded-full border border-blue-100">
+                          {category}
+                        </h3>
+                        <div className="h-px flex-1 bg-gradient-to-l from-transparent to-gray-200" />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {items.map((add, idx) => (
+                          <motion.div 
+                            key={idx}
+                            layout
+                            onClick={() => setExpandedAdditive(expandedAdditive === (add.product || add.name) ? null : (add.product || add.name))}
+                            whileHover={{ y: -5, boxShadow: '0 20px 40px -20px rgba(0,0,0,0.1)' }}
+                            className={`bg-gray-50/50 border border-gray-100 rounded-[2.5rem] p-8 hover:bg-white transition-all duration-300 flex flex-col group cursor-pointer relative overflow-hidden ${expandedAdditive === (add.product || add.name) ? 'ring-2 ring-blue-500 bg-white ring-offset-4' : ''}`}
+                          >
+                            <div className="flex justify-between items-start mb-6">
+                              <div className="text-[10px] font-black text-blue-500 bg-blue-50 px-3 py-1 rounded-lg uppercase tracking-widest border border-blue-100">
+                                {add.brand}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-10 h-10 bg-white border border-gray-100 text-gray-400 rounded-2xl flex items-center justify-center font-bold text-sm shadow-sm opacity-50">
+                                  {idx + 1}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="mb-6">
+                              <h4 className="text-2xl font-black text-gray-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors">
+                                {add.product || add.name}
+                              </h4>
+                              {add.product && <p className="text-sm text-gray-400 font-bold">{add.name}</p>}
+                            </div>
+
+                            <p className={`text-gray-600 leading-relaxed font-medium transition-all ${expandedAdditive === (add.product || add.name) ? 'mb-8' : 'line-clamp-2 mb-4'}`}>
+                              {add.importance}
+                            </p>
+
+                            <AnimatePresence>
+                              {expandedAdditive === (add.product || add.name) && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  {add.recommendation && (
+                                    <div className="mb-8 p-4 bg-green-50 border border-green-100 rounded-2xl text-green-700 text-sm font-bold flex items-center gap-3">
+                                      <CheckCircle2 className="w-5 h-5 shrink-0" />
+                                      {add.recommendation}
+                                    </div>
+                                  )}
+
+                                  <div className="space-y-4 pt-4 border-t border-gray-100">
+                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 pb-3">تفاصيل وفوائد إضافية:</p>
+                                     <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                                       {add.benefits.map((benefit, i) => (
+                                         <li key={i} className="flex items-start gap-2 text-xs text-gray-600 font-medium">
+                                           <div className="w-1.5 h-1.5 bg-blue-400 rounded-full shrink-0 mt-1.5" />
+                                           <span>{benefit}</span>
+                                         </li>
+                                       ))}
+                                     </ul>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+
+                            {!expandedAdditive && (
+                              <div className="mt-4 flex items-center gap-1 text-[10px] font-black text-blue-500 uppercase tracking-widest group-hover:translate-x-1 transition-transform">
+                                عرض التفاصيل <ChevronRight className="w-3 h-3" />
+                              </div>
+                            )}
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Top Companies Section */}
+                <div className="mt-32 pt-20 border-t border-gray-100">
+                  <div className="text-center mb-12">
+                    <h3 className="text-2xl font-black text-gray-900 mb-2">أقوى شركات إضافات الأعلاف عالمياً</h3>
+                    <p className="text-gray-500 font-medium whitespace-pre-line">
+                      قائمة الشركات الرائدة والموثوقة في تكنولوجيا تغذية الدواجن وفق التقارير السوقية الحديثة
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {TOP_COMPANIES.map(company => (
+                      <div 
+                        key={company}
+                        className="px-6 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-black text-gray-700 hover:bg-white hover:border-blue-400 hover:text-blue-600 hover:shadow-lg transition-all cursor-default"
+                      >
+                        {company}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-center text-[10px] text-gray-400 font-bold mt-12 uppercase tracking-widest leading-relaxed">
+                    هذه القائمة للمرجعية المهنية وتضم الشركات الأقوى في الإنزيمات، الفيتامينات، والأحماض الأمينية
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {activeTab === 'nutrition' && (
             <motion.div
               key="nutrition"
@@ -874,8 +1019,9 @@ export default function App() {
                       ].map(({ k, l, u }) => {
                         const key = k as keyof Nutrition;
                         const act = actualNutrition[key] || 0;
-                        const req = currentRequirement[key] || 0;
-                        const diff = act - req;
+                        const req = currentRequirement[key];
+                        const reqNum = parseFloat(req) || 0;
+                        const diff = act - reqNum;
                         const evalRes = getEvaluation(act, req);
                         return (
                           <tr key={k} className="hover:bg-gray-50 transition-colors">
@@ -899,7 +1045,7 @@ export default function App() {
                             </td>
                             <td className="px-8 py-4 text-center font-mono font-bold text-blue-700">{act.toFixed(k === 'ME' || k === 'choline' ? 0 : 2)}</td>
                             <td className={`px-8 py-4 text-center font-mono ${diff >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                              {diff > 0 ? '+' : ''}{diff.toFixed(2)}
+                              {diff > 0 ? '+' : ''}{diff.toFixed(k === 'ME' || k === 'choline' ? 0 : 2)}
                             </td>
                             <td className="px-8 py-4 text-center">
                               <span className={`px-3 py-1 rounded-full text-xs font-bold bg-white border border-gray-100 shadow-sm ${evalRes.color}`}>
@@ -949,8 +1095,9 @@ export default function App() {
                       ].map(({ k, l }) => {
                         const key = k as keyof Nutrition;
                         const act = actualNutrition[key] || 0;
-                        const req = currentRequirement[key] || 0;
-                        const diff = act - req;
+                        const req = currentRequirement[key];
+                        const reqNum = parseFloat(req) || 0;
+                        const diff = act - reqNum;
                         const evalRes = getEvaluation(act, req);
                         return (
                           <tr key={k} className="hover:bg-gray-50 transition-colors">
@@ -1062,16 +1209,23 @@ export default function App() {
                <span>توزيع المكونات: {ingredients.length}</span>
              </div>
            </div>
-           <div>Ross 308 Standards &copy; 2026</div>
+           <div className="flex items-center gap-6">
+             <div className="flex flex-col items-end leading-none">
+               <span className="text-[9px] text-blue-600 mb-0.5" dir="rtl">تقديم وتصميم: د. ظلال الصافتلي</span>
+               <span className="font-mono text-[9px] text-gray-400" dir="ltr">+963946656403</span>
+             </div>
+             <div>Ross 308 Standards &copy; 2026</div>
+           </div>
         </div>
       </footer>
 
       {/* Printable Report Content (Hidden in UI via CSS) */}
       <div id="printable-report" className="hidden print:block p-10 bg-white text-black rtl text-right" dir="rtl">
         <div className="flex items-center justify-between border-b-2 border-green-600 pb-6 mb-8">
-          <div>
+          <div className="text-right" dir="rtl">
             <h1 className="text-3xl font-bold text-gray-900">تقرير تحليل علائق Ross 308</h1>
-            <p className="text-sm text-gray-500 mt-2">تاريخ التقرير: {new Date().toLocaleDateString('ar-EG')}</p>
+            <p className="text-sm text-gray-500 mt-2 italic">تقديم وتصميم: د. ظلال الصافتلي (+963946656403)</p>
+            <p className="text-sm text-gray-500 mt-1">تاريخ التقرير: {new Date().toLocaleDateString('ar-EG')}</p>
           </div>
           <div className="text-left" dir="ltr">
             <p className="font-bold text-green-700 text-xl tracking-tight">Scientific Poultry Nutrition</p>
@@ -1093,12 +1247,14 @@ export default function App() {
             <tbody>
               {activeIngredients.map(ing => {
                 const mixItem = mixture.find(m => m.ingredientId === ing.id);
+                const percentage = parseFloat(mixItem?.percentage) || 0;
+                const price = parseFloat(ing.price) || 0;
                 return (
                   <tr key={ing.id} className="text-sm">
                     <td className="border border-gray-300 p-3 font-bold">{ing.name}</td>
-                    <td className="border border-gray-300 p-3 text-center font-mono">%{mixItem?.percentage.toFixed(2)}</td>
-                    <td className="border border-gray-300 p-3 text-center font-mono">${ing.price.toFixed(3)}</td>
-                    <td className="border border-gray-300 p-3 text-center font-mono">${((ing.price * (mixItem?.percentage || 0)) / 100).toFixed(4)}</td>
+                    <td className="border border-gray-300 p-3 text-center font-mono">%{percentage.toFixed(2)}</td>
+                    <td className="border border-gray-300 p-3 text-center font-mono">${price.toFixed(3)}</td>
+                    <td className="border border-gray-300 p-3 text-center font-mono">${((price * percentage) / 100).toFixed(4)}</td>
                   </tr>
                 );
               })}
@@ -1145,7 +1301,7 @@ export default function App() {
               ].map(({ k, l, u }) => {
                 const key = k as keyof Nutrition;
                 const act = actualNutrition[key] || 0;
-                const req = currentRequirement[key] || 0;
+                const req = parseFloat(currentRequirement[key]) || 0;
                 const diff = act - req;
                 const evalRes = getEvaluation(act, req);
                 return (
