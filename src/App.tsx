@@ -22,7 +22,8 @@ import {
   LineChart as LineChartIcon,
   Facebook,
   MapPin,
-  ExternalLink
+  ExternalLink,
+  RefreshCcw
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -47,7 +48,7 @@ import {
 } from './constants';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives' | 'performance'>('mixture');
+  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives' | 'performance' | 'simulator'>('mixture');
   const [selectedPerformanceDay, setSelectedPerformanceDay] = useState<number>(0);
   const [temperature, setTemperature] = useState<number>(20);
 
@@ -137,6 +138,22 @@ export default function App() {
     localStorage.setItem('ross308_customPhases', JSON.stringify(allCustomPhases));
   }, [allCustomPhases]);
 
+  // Simulator State & Logic
+  const [simulatorSourceId, setSimulatorSourceId] = useState<string>('');
+  const [simulatorTargetId, setSimulatorTargetId] = useState<string>('');
+  const [simulatorAmount, setSimulatorAmount] = useState<number>(3);
+
+  useEffect(() => {
+    if (!simulatorSourceId) {
+      const sbm = ingredients.find(ing => ing.name.includes('صويا') || ing.name.toLowerCase().includes('soybean'));
+      if (sbm) setSimulatorSourceId(sbm.id);
+    }
+    if (!simulatorTargetId) {
+      const corn = ingredients.find(ing => ing.name.includes('ذرة') || ing.name.toLowerCase().includes('corn'));
+      if (corn) setSimulatorTargetId(corn.id);
+    }
+  }, [ingredients, simulatorSourceId, simulatorTargetId]);
+
   useEffect(() => {
     localStorage.setItem('ross308_snapshots', JSON.stringify(snapshots));
   }, [snapshots]);
@@ -179,6 +196,116 @@ export default function App() {
       return sum;
     }, 0);
   }, [mixture, ingredients]);
+
+  const simulationResult = useMemo(() => {
+    const source = ingredients.find(ing => ing.id === simulatorSourceId);
+    const target = ingredients.find(ing => ing.id === simulatorTargetId);
+    
+    if (!source || !target) return null;
+
+    // The logic remains relative to the swap, but we interpret it based on its impact on the 1000kg formula.
+    const delta: any = {};
+    const keys = Object.keys(source.nutrition);
+    
+    keys.forEach(key => {
+      delta[key] = (target.nutrition[key as keyof Nutrition] - source.nutrition[key as keyof Nutrition]) * (simulatorAmount / 100);
+    });
+
+    const oil = ingredients.find(ing => ing.name.includes('زيت') || ing.name.toLowerCase().includes('oil'));
+    const meth = ingredients.find(ing => ing.name.includes('ميثيونين') || ing.name.toLowerCase().includes('methionine'));
+    const lys = ingredients.find(ing => ing.name.includes('ليسين') || ing.name.includes('لايسين') || ing.name.toLowerCase().includes('lysine'));
+    const thr = ingredients.find(ing => ing.name.includes('ثريونين') || ing.name.toLowerCase().includes('threonine'));
+    const valIn = ingredients.find(ing => ing.name.includes('فالين') || ing.name.toLowerCase().includes('valine'));
+    const ile = ingredients.find(ing => ing.name.includes('ايزوليوسين') || ing.name.includes('إيزوليوسين') || ing.name.toLowerCase().includes('isoleucine'));
+    const arg = ingredients.find(ing => ing.name.includes('ارجنين') || ing.name.includes('أرجنين') || ing.name.toLowerCase().includes('arginine'));
+    const limestone = ingredients.find(ing => ing.name.includes('حجر') || ing.name.toLowerCase().includes('limestone') || ing.name.includes('كلس'));
+    const dcp = ingredients.find(ing => ing.name.includes('دي كالسيم') || ing.name.toLowerCase().includes('dcp') || ing.name.includes('فوسفات'));
+    const choline = ingredients.find(ing => ing.name.includes('كولين') || ing.name.toLowerCase().includes('choline'));
+
+    const corrections: {name: string, amount: number, unit: string, price: number, type: 'add' | 'reduce'}[] = [];
+    
+    /**
+     * Logic Update:
+     * Instead of just correcting the delta, we check if the delta makes the current mixture's nutrition 
+     * cross the requirements threshold.
+     * 
+     * However, the user's specific request "mimic the mixture built" means:
+     * If the user has a balanced mix, any change should be compensated to return to THAT balance.
+     */
+    
+    // Energy (Oil)
+    if (oil && oil.nutrition.ME > 0) {
+        if (delta.ME < 0) {
+            const needed = (Math.abs(delta.ME) * 1000) / oil.nutrition.ME;
+            corrections.push({ name: oil.name, amount: needed, unit: 'كغ/طن', price: parseFloat(oil.price) || 0, type: 'add' });
+        } else if (delta.ME > 0) {
+            const extra = (delta.ME * 1000) / oil.nutrition.ME;
+            corrections.push({ name: oil.name, amount: extra, unit: 'كغ/طن', price: parseFloat(oil.price) || 0, type: 'reduce' });
+        }
+    }
+
+    // Amino Acids
+    const aminoMap = [
+        { key: 'dLys', ing: lys },
+        { key: 'dMet', ing: meth },
+        { key: 'dThr', ing: thr },
+        { key: 'dVal', ing: valIn },
+        { key: 'dIso', ing: ile },
+        { key: 'dArg', ing: arg }
+    ];
+
+    aminoMap.forEach(amino => {
+        if (delta[amino.key] < 0 && amino.ing && amino.ing.nutrition[amino.key as keyof Nutrition] > 0) {
+            const neededPure = (Math.abs(delta[amino.key]) / 100) * 1000;
+            const neededSupp = neededPure / (parseFloat(amino.ing.nutrition[amino.key as keyof Nutrition] as string) / 100);
+            corrections.push({ name: amino.ing.name, amount: neededSupp, unit: 'كغ/طن', price: parseFloat(amino.ing.price) || 0, type: 'add' });
+        }
+    });
+
+    // Choline
+    if (delta.choline < 0 && choline && choline.nutrition.choline > 0) {
+        const neededTotalMg = Math.abs(delta.choline) * 1000;
+        const neededSupp = neededTotalMg / choline.nutrition.choline;
+        corrections.push({ name: choline.name, amount: neededSupp, unit: 'كغ/طن', price: parseFloat(choline.price) || 0, type: 'add' });
+    }
+    
+    // Minerals
+    if (delta.Ca < 0 && limestone && limestone.nutrition.Ca > 0) {
+        const neededPure = (Math.abs(delta.Ca) / 100) * 1000;
+        const neededSupp = neededPure / (limestone.nutrition.Ca / 100);
+        corrections.push({ name: limestone.name, amount: neededSupp, unit: 'كغ/طن', price: parseFloat(limestone.price) || 0, type: 'add' });
+    }
+
+    if (delta.avP < 0 && dcp && dcp.nutrition.avP > 0) {
+        const neededPure = (Math.abs(delta.avP) / 100) * 1000;
+        const neededSupp = neededPure / (dcp.nutrition.avP / 100);
+        corrections.push({ name: dcp.name, amount: neededSupp, unit: 'كغ/طن', price: parseFloat(dcp.price) || 0, type: 'add' });
+    }
+
+    // Cost Calculation per 1 Ton (1000 kg)
+    const sourcePrice = parseFloat(source.price) || 0;
+    const targetPrice = parseFloat(target.price) || 0;
+    const amountInKg = (simulatorAmount / 100) * 1000;
+
+    const sourceCostSaving = amountInKg * sourcePrice;
+    const targetCostSpent = amountInKg * targetPrice;
+    
+    const correctionsCostNet = corrections.reduce((sum, c) => {
+        const cost = c.amount * c.price;
+        return c.type === 'add' ? sum + cost : sum - cost;
+    }, 0);
+
+    const netCostImpact = (targetCostSpent + correctionsCostNet) - sourceCostSaving;
+
+    return { 
+        delta, 
+        corrections, 
+        source, 
+        target, 
+        netCostImpact,
+        isMixtureSufficient: actualNutrition.ME >= currentRequirement.ME // Example check
+    };
+  }, [ingredients, simulatorSourceId, simulatorTargetId, simulatorAmount, actualNutrition, currentRequirement]);
 
   const handlePercentageChange = (id: string, value: string) => {
     setMixture(prev => prev.map(item => 
@@ -434,6 +561,13 @@ export default function App() {
             >
               <Activity className="w-4 h-4" />
               الأداء والنمو
+            </button>
+            <button 
+              onClick={() => setActiveTab('simulator')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === 'simulator' ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              <RefreshCcw className="w-4 h-4" />
+              محاكي الاستبدال
             </button>
             <div className="w-px h-6 bg-gray-200 mx-1 hidden md:block"></div>
             <button 
@@ -1472,6 +1606,183 @@ export default function App() {
               </div>
             </motion.div>
           )}
+
+          {activeTab === 'simulator' && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8"
+            >
+              <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="p-3 bg-blue-100 rounded-2xl">
+                    <RefreshCcw className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold">محاكي الاستبدال الذكي</h2>
+                    <p className="text-gray-500">حساب تأثير استبدال مادة بأخرى والكميات المطلوبة للتعويض.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-gray-50 rounded-3xl border border-gray-100 mb-8">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase pr-2">المادة المراد استبدالها (المصدر)</label>
+                    <select 
+                      value={simulatorSourceId}
+                      onChange={(e) => setSimulatorSourceId(e.target.value)}
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none font-bold"
+                    >
+                      <option value="">اختر مادة...</option>
+                      {ingredients.map(ing => (
+                        <option key={ing.id} value={ing.id}>{ing.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-center pt-6">
+                    <div className="w-full h-px bg-gray-200 relative">
+                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-2 rounded-full border border-gray-100 shadow-sm">
+                          <ArrowRightLeft className="w-4 h-4 text-gray-400" />
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase pr-2">المادة البديلة (الهدف)</label>
+                    <select 
+                      value={simulatorTargetId}
+                      onChange={(e) => setSimulatorTargetId(e.target.value)}
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none font-bold"
+                    >
+                      <option value="">اختر مادة...</option>
+                      {ingredients.map(ing => (
+                        <option key={ing.id} value={ing.id}>{ing.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="md:col-start-2 space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase pr-2">النسبة المئوية للاستبدال (%)</label>
+                    <input 
+                      type="number"
+                      step="0.1"
+                      value={simulatorAmount}
+                      onChange={(e) => setSimulatorAmount(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none font-bold text-center"
+                    />
+                  </div>
+                </div>
+
+                {simulationResult && (
+                  <div className="space-y-8">
+                    {/* Financial Impact Banner */}
+                    <div className="space-y-4">
+                      <div className={`p-6 rounded-3xl border flex flex-col md:flex-row items-center justify-between gap-6 ${simulationResult.netCostImpact > 0 ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
+                        <div className="flex items-center gap-4">
+                          <div className={`p-3 rounded-2xl ${simulationResult.netCostImpact > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                            <DollarSign className="w-8 h-8" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">الأثر المالي لإعادة التوازن (لكل 1 طن)</p>
+                            <h3 className={`text-3xl font-black ${simulationResult.netCostImpact > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                              {simulationResult.netCostImpact > 0 ? '+' : ''}{simulationResult.netCostImpact.toFixed(2)} $
+                            </h3>
+                          </div>
+                        </div>
+                        <div className="bg-white/50 px-6 py-3 rounded-2xl border border-white/20">
+                           <p className="text-[10px] font-bold text-gray-400 mb-1 uppercase">حالة التكلفة بعد التصحيح</p>
+                           <p className={`text-lg font-bold ${simulationResult.netCostImpact > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                             {simulationResult.netCostImpact > 0 ? 'زيادة في المصاريف' : 'توفير حقيقي'}
+                           </p>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50 flex items-start gap-3">
+                         <div className="p-2 bg-blue-100 rounded-lg">
+                           <Activity className="w-4 h-4 text-blue-600" />
+                         </div>
+                         <div className="text-sm leading-relaxed">
+                            <span className="font-bold text-blue-800 block mb-1">ذكاء المحاكاة (Formula-Aware):</span>
+                            <p className="text-blue-700 opacity-80">
+                              يتم حساب هذه المقترحات بناءً على **خلطتك الحالية**. الهدف هو الحفاظ على نفس القيم الغذائية التي وصلت إليها في تبويب "النتائج"، لضمان عدم تأثر أداء الطيور سلباً بهذا الاستبدال.
+                            </p>
+                         </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* Impact Table */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-bold flex items-center gap-2 px-2">
+                          <TrendingDown className="w-5 h-5 text-red-500" />
+                          الأثر الغذائي للاستبدال (لكل كغ علف)
+                        </h3>
+                        <div className="overflow-hidden rounded-2xl border border-gray-100">
+                          <table className="w-full text-sm text-right">
+                            <thead className="bg-gray-50 text-gray-500 uppercase tracking-widest text-[10px]">
+                              <tr>
+                                <th className="px-4 py-3">العنصر الغذائي</th>
+                                <th className="px-4 py-3">خسارة / زيادة</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50 font-mono">
+                              {nutrientsToEdit.map(n => {
+                                const val = simulationResult.delta[n.key];
+                                if (Math.abs(val) < 0.0001) return null;
+                                return (
+                                  <tr key={n.key}>
+                                    <td className="px-4 py-3 font-bold text-gray-600">{n.label}</td>
+                                    <td className={`px-4 py-3 font-bold ${val > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {val > 0 ? '+' : ''}{val.toFixed(4)}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Correction Actions */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-bold flex items-center gap-2 px-2 text-blue-600">
+                          <CheckCircle2 className="w-5 h-5" />
+                          الإجراءات التصحيحية المقترحة
+                        </h3>
+                        <div className="space-y-4">
+                          {simulationResult.corrections.length > 0 ? (
+                            simulationResult.corrections.map((c, i) => (
+                              <div key={i} className={`flex items-center justify-between p-4 rounded-2xl border ${c.type === 'add' ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'}`}>
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 bg-white rounded-lg shadow-sm">
+                                    {c.type === 'add' ? <Plus className="w-4 h-4 text-blue-600" /> : <Trash2 className="w-4 h-4 text-orange-600" />}
+                                  </div>
+                                  <span className="font-bold text-gray-700">{c.type === 'add' ? 'إضافة' : 'خفض'} {c.name}</span>
+                                </div>
+                                <div className="text-left">
+                                  <span className={`text-xl font-black ${c.type === 'add' ? 'text-blue-700' : 'text-orange-700'}`}>{c.amount.toFixed(3)}</span>
+                                  <span className={`text-xs font-bold mr-1 ${c.type === 'add' ? 'text-blue-400' : 'text-orange-400'}`}>{c.unit}</span>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="p-8 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200 italic">
+                              لا يوجد نقص يحتاج لتصحيح آلي حالياً.
+                            </div>
+                          )}
+                          <div className="p-4 bg-orange-50 rounded-xl text-[10px] text-orange-700 flex gap-2 border border-orange-100">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            <p>ملاحظة: هذه الحسابات تعتمد على القيم الحالية للمواد التصحيحية (الزيت، الأحماض الأمينية، المصادر المعدنية) كما هي معرفة في قاعدة بيانات المكونات لديك.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
 
@@ -1536,11 +1847,11 @@ export default function App() {
         </div>
 
         <div className="mb-10 text-right">
-          <h2 className="text-xl font-bold bg-gray-100 p-3 rounded-lg mb-4 border-r-4 border-blue-600">أولاً: تفاصيل الخلطة المكونة</h2>
-          <table className="w-full border-collapse">
+          <h2 className="text-xl font-bold bg-gray-100 p-3 rounded-lg mb-4 border-r-4 border-blue-600">أولاً: المكونات الرئيسية (Macro Ingredients)</h2>
+          <table className="w-full border-collapse mb-8">
             <thead>
               <tr className="bg-gray-50 text-gray-600 text-sm">
-                <th className="border border-gray-300 p-3 text-right">المكون</th>
+                <th className="border border-gray-300 p-3 text-right">المكون الأساسي</th>
                 <th className="border border-gray-300 p-3 text-center">النسبة (%)</th>
                 <th className="border border-gray-300 p-3 text-center">الكمية (كغ/طن)</th>
                 <th className="border border-gray-300 p-3 text-center">السعر ($/كغ)</th>
@@ -1548,22 +1859,55 @@ export default function App() {
               </tr>
             </thead>
             <tbody>
-              {activeIngredients.map(ing => {
-                const mixItem = mixture.find(m => m.ingredientId === ing.id);
-                const percentage = parseFloat(mixItem?.percentage) || 0;
-                const price = parseFloat(ing.price) || 0;
-                return (
-                  <tr key={ing.id} className="text-sm">
-                    <td className="border border-gray-300 p-3 font-bold">{ing.name}</td>
-                    <td className="border border-gray-300 p-3 text-center font-mono">%{percentage.toFixed(2)}</td>
-                    <td className="border border-gray-300 p-3 text-center font-mono font-bold text-blue-700">{(percentage * 10).toFixed(2)} كغ</td>
-                    <td className="border border-gray-300 p-3 text-center font-mono">${price.toFixed(3)}</td>
-                    <td className="border border-gray-300 p-3 text-center font-mono">${((price * percentage) / 100).toFixed(4)}</td>
-                  </tr>
-                );
-              })}
+              {activeIngredients
+                .filter(ing => ing.name.includes('ذرة') || ing.name.includes('صويا') || ing.name.includes('زيت'))
+                .map(ing => {
+                  const mixItem = mixture.find(m => m.ingredientId === ing.id);
+                  const percentage = parseFloat(mixItem?.percentage) || 0;
+                  const price = parseFloat(ing.price) || 0;
+                  return (
+                    <tr key={ing.id} className="text-sm">
+                      <td className="border border-gray-300 p-3 font-bold">{ing.name}</td>
+                      <td className="border border-gray-300 p-3 text-center font-mono">%{percentage.toFixed(2)}</td>
+                      <td className="border border-gray-300 p-3 text-center font-mono font-bold text-blue-700">{(percentage * 10).toFixed(2)} كغ</td>
+                      <td className="border border-gray-300 p-3 text-center font-mono">${price.toFixed(3)}</td>
+                      <td className="border border-gray-300 p-3 text-center font-mono">${((price * percentage) / 100).toFixed(4)}</td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+
+          <h2 className="text-xl font-bold bg-gray-100 p-3 rounded-lg mb-4 border-r-4 border-green-600">ثانياً: بريمكس وإضافات الخلطة (Micro Ingredients)</h2>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-50 text-gray-600 text-sm">
+                <th className="border border-gray-300 p-3 text-right">المكون / الإضافة</th>
+                <th className="border border-gray-300 p-3 text-center">النسبة (%)</th>
+                <th className="border border-gray-300 p-3 text-center">الكمية (كغ/طن)</th>
+                <th className="border border-gray-300 p-3 text-center">السعر ($/كغ)</th>
+                <th className="border border-gray-300 p-3 text-center">التكلفة ($)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeIngredients
+                .filter(ing => !(ing.name.includes('ذرة') || ing.name.includes('صويا') || ing.name.includes('زيت')))
+                .map(ing => {
+                  const mixItem = mixture.find(m => m.ingredientId === ing.id);
+                  const percentage = parseFloat(mixItem?.percentage) || 0;
+                  const price = parseFloat(ing.price) || 0;
+                  return (
+                    <tr key={ing.id} className="text-sm">
+                      <td className="border border-gray-300 p-3 font-bold">{ing.name}</td>
+                      <td className="border border-gray-300 p-3 text-center font-mono">%{percentage.toFixed(3)}</td>
+                      <td className="border border-gray-300 p-3 text-center font-mono font-bold text-blue-700">{(percentage * 10).toFixed(3)} كغ</td>
+                      <td className="border border-gray-300 p-3 text-center font-mono">${price.toFixed(3)}</td>
+                      <td className="border border-gray-300 p-3 text-center font-mono">${((price * percentage) / 100).toFixed(4)}</td>
+                    </tr>
+                  );
+                })}
               <tr className="bg-green-50 font-bold">
-                <td className="border border-gray-300 p-3">المجموع الكلي</td>
+                <td className="border border-gray-300 p-3">المجموع الكلي للخلطة</td>
                 <td className="border border-gray-300 p-3 text-center">{totalPercentage.toFixed(2)}%</td>
                 <td className="border border-gray-300 p-3 text-center">{(totalPercentage * 10).toFixed(2)} كغ</td>
                 <td className="border border-gray-300 p-3 text-center bg-transparent">-</td>
@@ -1578,7 +1922,7 @@ export default function App() {
         </div>
 
         <div className="mb-10 page-break-before text-right">
-          <h2 className="text-xl font-bold bg-gray-100 p-3 rounded-lg mb-4 border-r-4 border-indigo-600">ثانياً: التحليل الغذائي والمقارنة</h2>
+          <h2 className="text-xl font-bold bg-gray-100 p-3 rounded-lg mb-4 border-r-4 border-indigo-600">ثالثاً: التحليل الغذائي والمقارنة</h2>
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-50 text-gray-600 text-sm">
@@ -1626,7 +1970,7 @@ export default function App() {
         </div>
 
         <div className="text-right">
-          <h2 className="text-xl font-bold bg-gray-100 p-3 rounded-lg mb-4 border-r-4 border-red-600">ثالثاً: التوصيات والملاحظات العلمية</h2>
+          <h2 className="text-xl font-bold bg-gray-100 p-3 rounded-lg mb-4 border-r-4 border-red-600">رابعاً: التوصيات والملاحظات العلمية</h2>
           <div className="space-y-3">
             {getRecommendations().map((rec, i) => (
               <div key={i} className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-800 text-sm flex items-center gap-3">
