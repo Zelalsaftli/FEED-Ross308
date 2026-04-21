@@ -19,7 +19,10 @@ import {
   ArrowRightLeft,
   Lightbulb,
   Activity,
-  LineChart as LineChartIcon
+  LineChart as LineChartIcon,
+  Facebook,
+  MapPin,
+  ExternalLink
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -370,12 +373,22 @@ export default function App() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-600 rounded-lg shadow-sm">
-              <Calculator className="w-6 h-6 text-white" />
-            </div>
+            <img 
+              src="https://scontent-sjc3-1.xx.fbcdn.net/v/t39.30808-6/491529283_1072530858016732_1086890789763123853_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_ohc=lrMsrX8QA2MQ7kNvwGEOLh4&_nc_oc=AdrlzDeG9B4A-IlkrOdp9XUqxHK4fG-jpZLvrLerrMBCxrFw5ZmKlSydPXjGXXi1NZw&_nc_zt=23&_nc_ht=scontent-sjc3-1.xx&_nc_gid=EMLGCueKnEtU5G8GXgU4qg&_nc_ss=7a3a8&oh=00_Af1u8As3peG3hpx8NQufqfEIdCTZELry-WO6e-1ztcXgoA&oe=69ED1D2E" 
+              alt="Logo" 
+              className="w-12 h-12 rounded-xl object-cover border border-gray-100 shadow-sm"
+              referrerPolicy="no-referrer"
+            />
             <div>
-              <h1 className="text-xl font-bold tracking-tight">محلل علائق Ross 308</h1>
-              <p className="text-xs text-gray-500 font-mono uppercase tracking-widest">Scientific Poultry Nutrition v2.0</p>
+              <h1 className="text-xl font-bold tracking-tight text-gray-900">شركة الأسعد إخوان للدواجن</h1>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Scientific Poultry Nutrition v2.0</p>
+                <div className="w-1 h-1 rounded-full bg-gray-300"></div>
+                <div className="flex items-center gap-1 text-[10px] text-green-600 font-bold">
+                  <MapPin className="w-2.5 h-2.5" />
+                  حمص، تلكلخ
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1476,6 +1489,16 @@ export default function App() {
              </div>
            </div>
            <div className="flex items-center gap-6">
+             <a 
+               href="https://www.facebook.com/share/18dXfcgUun/" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 transition-colors"
+             >
+               <Facebook className="w-3.5 h-3.5" />
+               <span className="normal-case">Facebook Page</span>
+               <ExternalLink className="w-2.5 h-2.5 opacity-50" />
+             </a>
              <div className="flex flex-col items-end leading-none">
                <span className="text-[9px] text-blue-600 mb-0.5" dir="rtl">تقديم وتصميم: د. ظلال الصافتلي</span>
                <span className="font-mono text-[9px] text-gray-400" dir="ltr">+963946656403</span>
@@ -1488,10 +1511,23 @@ export default function App() {
       {/* Printable Report Content (Hidden in UI via CSS) */}
       <div id="printable-report" className="hidden print:block p-10 bg-white text-black rtl text-right" dir="rtl">
         <div className="flex items-center justify-between border-b-2 border-green-600 pb-6 mb-8">
-          <div className="text-right" dir="rtl">
-            <h1 className="text-3xl font-bold text-gray-900">تقرير تحليل علائق Ross 308</h1>
-            <p className="text-sm text-gray-500 mt-2 italic">تقديم وتصميم: د. ظلال الصافتلي (+963946656403)</p>
-            <p className="text-sm text-gray-500 mt-1">تاريخ التقرير: {new Date().toLocaleDateString('ar-EG')}</p>
+          <div className="flex items-center gap-4">
+            <img 
+              src="https://scontent-sjc3-1.xx.fbcdn.net/v/t39.30808-6/491529283_1072530858016732_1086890789763123853_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_ohc=lrMsrX8QA2MQ7kNvwGEOLh4&_nc_oc=AdrlzDeG9B4A-IlkrOdp9XUqxHK4fG-jpZLvrLerrMBCxrFw5ZmKlSydPXjGXXi1NZw&_nc_zt=23&_nc_ht=scontent-sjc3-1.xx&_nc_gid=EMLGCueKnEtU5G8GXgU4qg&_nc_ss=7a3a8&oh=00_Af1u8As3peG3hpx8NQufqfEIdCTZELry-WO6e-1ztcXgoA&oe=69ED1D2E" 
+              alt="Logo" 
+              className="w-20 h-20 rounded-2xl object-cover"
+              referrerPolicy="no-referrer"
+            />
+            <div className="text-right" dir="rtl">
+              <h1 className="text-3xl font-bold text-gray-900">شركة الأسعد إخوان للدواجن</h1>
+              <p className="text-lg font-bold text-green-700">تقرير تحليل علائق Ross 308</p>
+              <div className="flex items-center gap-4 mt-2">
+                <p className="text-sm text-gray-500 italic">تقديم وتصميم: د. ظلال الصافتلي (+963946656403)</p>
+                <div className="w-1 h-1 rounded-full bg-gray-300"></div>
+                <p className="text-sm text-gray-500 font-bold">حمص - تلكلخ</p>
+              </div>
+              <p className="text-sm text-gray-400 mt-1">تاريخ التقرير: {new Date().toLocaleDateString('ar-EG')}</p>
+            </div>
           </div>
           <div className="text-left" dir="ltr">
             <p className="font-bold text-green-700 text-xl tracking-tight">Scientific Poultry Nutrition</p>

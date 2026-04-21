@@ -1,6 +1,6 @@
 {
-  "name": "Ross 308 Feed Analyzer",
-  "description": "Advanced tool for analyzing broiler chicken feed mixtures according to Ross 308 nutritional standards.",
+  "name": "محلل علائق Ross 308 - شركة الأسعد إخوان",
+  "description": "الأداة الرسمية لشركة الأسعد إخوان للدواجن (حمص - تلكلخ) لتحليل علائق فروج اللحم وفق معايير Ross 308.",
   "requestFramePermissions": [],
   "majorCapabilities": ["Nutrition Analysis", "Cost Calculation", "Technical Dashboard"]
 }
