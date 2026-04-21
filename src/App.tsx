@@ -120,6 +120,7 @@ export default function App() {
   const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null);
   const [expandedAdditive, setExpandedAdditive] = useState<string | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [batchSize, setBatchSize] = useState<number>(1);
 
   // Persistence Saving
   useEffect(() => {
@@ -600,6 +601,16 @@ export default function App() {
                       تكوين الخلطة المختارة
                     </h2>
                     <div className="flex items-center gap-3">
+                       <div className="flex items-center gap-2 px-3 py-1 bg-white border border-gray-200 rounded-lg shadow-sm">
+                         <span className="text-[10px] font-bold text-gray-400">سعة الخلاط:</span>
+                         <input 
+                            type="number"
+                            value={batchSize}
+                            onChange={(e) => setBatchSize(parseFloat(e.target.value) || 1)}
+                            className="w-16 text-center font-bold text-blue-600 outline-none"
+                         />
+                         <span className="text-[10px] font-bold text-gray-400">طن</span>
+                       </div>
                        <button 
                         onClick={saveSnapshot}
                         disabled={mixture.length === 0}
@@ -637,6 +648,7 @@ export default function App() {
                           <th className="px-6 py-4 text-right sticky right-0 bg-gray-50 z-10">المكون</th>
                           <th className="px-4 py-4 w-32 font-bold text-gray-900 border-x border-gray-100">نسبة الإدخال (%)</th>
                           <th className="px-4 py-4 w-32 font-bold text-blue-700 bg-blue-50/30 border-x border-gray-100">الكمية (كغ/طن)</th>
+                          <th className="px-4 py-4 w-32 font-bold text-indigo-700 bg-indigo-50/30 border-x border-gray-100">وزن الخلطة ({batchSize} طن)</th>
                           <th className="px-4 py-4 w-32 font-bold text-green-700">السعر ($/كغ)</th>
                           <th className="px-4 py-4 w-32 font-bold text-gray-900">تكلفة المكون</th>
                           <th className="px-4 py-4 w-20"></th>
@@ -678,7 +690,10 @@ export default function App() {
                                   />
                                 </td>
                                 <td className="px-4 py-4 text-center font-mono font-bold text-blue-700 bg-blue-50/20 border-x border-gray-50">
-                                  {((parseFloat(mixItem?.percentage || '0') || 0) * 10).toFixed(2)}
+                                  {((parseFloat(mixItem?.percentage || '0') || 0) * 10).toFixed(2)} كغ
+                                </td>
+                                <td className="px-4 py-4 text-center font-mono font-bold text-indigo-700 bg-indigo-50/20 border-x border-gray-50">
+                                  {((parseFloat(mixItem?.percentage || '0') || 0) * 10 * batchSize).toFixed(2)} كغ
                                 </td>
                                 <td className="px-4 py-4 text-center">
                                   <input 
@@ -1850,12 +1865,11 @@ export default function App() {
           <h2 className="text-xl font-bold bg-gray-100 p-3 rounded-lg mb-4 border-r-4 border-blue-600">أولاً: المكونات الرئيسية (Macro Ingredients)</h2>
           <table className="w-full border-collapse mb-8">
             <thead>
-              <tr className="bg-gray-50 text-gray-600 text-sm">
-                <th className="border border-gray-300 p-3 text-right">المكون الأساسي</th>
-                <th className="border border-gray-300 p-3 text-center">النسبة (%)</th>
-                <th className="border border-gray-300 p-3 text-center">الكمية (كغ/طن)</th>
-                <th className="border border-gray-300 p-3 text-center">السعر ($/كغ)</th>
-                <th className="border border-gray-300 p-3 text-center">التكلفة ($)</th>
+              <tr className="bg-gray-50 text-gray-700 text-sm">
+                <th className="border-2 border-gray-300 p-3 text-right">المكون الأساسي</th>
+                <th className="border-2 border-gray-300 p-3 text-center">النسبة (%)</th>
+                <th className="border-2 border-gray-300 p-3 text-center">لكل 1 طن</th>
+                <th className="border-2 border-gray-300 p-3 text-center text-blue-900 bg-blue-50">لـ {batchSize} طن</th>
               </tr>
             </thead>
             <tbody>
@@ -1864,29 +1878,39 @@ export default function App() {
                 .map(ing => {
                   const mixItem = mixture.find(m => m.ingredientId === ing.id);
                   const percentage = parseFloat(mixItem?.percentage) || 0;
-                  const price = parseFloat(ing.price) || 0;
                   return (
-                    <tr key={ing.id} className="text-sm">
-                      <td className="border border-gray-300 p-3 font-bold">{ing.name}</td>
-                      <td className="border border-gray-300 p-3 text-center font-mono">%{percentage.toFixed(2)}</td>
-                      <td className="border border-gray-300 p-3 text-center font-mono font-bold text-blue-700">{(percentage * 10).toFixed(2)} كغ</td>
-                      <td className="border border-gray-300 p-3 text-center font-mono">${price.toFixed(3)}</td>
-                      <td className="border border-gray-300 p-3 text-center font-mono">${((price * percentage) / 100).toFixed(4)}</td>
+                    <tr key={ing.id} className="text-base text-gray-900 font-medium">
+                      <td className="border-2 border-gray-300 p-4 font-bold bg-gray-50/50">{ing.name}</td>
+                      <td className="border-2 border-gray-300 p-4 text-center font-mono">%{percentage.toFixed(2)}</td>
+                      <td className="border-2 border-gray-300 p-4 text-center font-mono text-gray-600">{(percentage * 10).toFixed(2)} كغ</td>
+                      <td className="border-2 border-gray-300 p-4 text-center font-mono font-bold text-blue-800 bg-blue-50/30">{(percentage * 10 * batchSize).toFixed(2)} كغ</td>
                     </tr>
                   );
                 })}
             </tbody>
           </table>
+          <div className="mt-4 p-5 bg-blue-900 text-white rounded-2xl flex justify-between items-center shadow-lg print:shadow-none" dir="rtl">
+             <span className="font-bold text-lg">سعر الطن المتوقع:</span>
+             <span className="text-3xl font-mono">${(costPerKg * 1000).toLocaleString()} / طن</span>
+          </div>
+        </div>
 
-          <h2 className="text-xl font-bold bg-gray-100 p-3 rounded-lg mb-4 border-r-4 border-green-600">ثانياً: بريمكس وإضافات الخلطة (Micro Ingredients)</h2>
+        {/* Page Break for Premix Section */}
+        <div className="page-break-before pt-10 text-right">
+          <div className="flex items-center justify-between border-b-2 border-green-600 pb-4 mb-6">
+             <h2 className="text-2xl font-black text-green-700">ثانياً: جدول أوزان البريمكس والإضافات (الميزان الدقيق)</h2>
+             <div className="text-left">
+                <p className="text-xs font-bold text-gray-500 uppercase">Batch Size: {batchSize} Ton</p>
+                <p className="text-xs font-bold text-green-600">Precision Weighing List</p>
+             </div>
+          </div>
+          
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-50 text-gray-600 text-sm">
-                <th className="border border-gray-300 p-3 text-right">المكون / الإضافة</th>
-                <th className="border border-gray-300 p-3 text-center">النسبة (%)</th>
-                <th className="border border-gray-300 p-3 text-center">الكمية (كغ/طن)</th>
-                <th className="border border-gray-300 p-3 text-center">السعر ($/كغ)</th>
-                <th className="border border-gray-300 p-3 text-center">التكلفة ($)</th>
+              <tr className="bg-green-50 text-green-900">
+                <th className="border-2 border-green-200 p-4 text-right text-lg">المكون / الإضافة المهضومة</th>
+                <th className="border-2 border-green-200 p-4 text-center text-lg">النسبة (%)</th>
+                <th className="border-2 border-green-200 p-4 text-center text-lg bg-green-100">الوزن المطلوب لـ ({batchSize} طن)</th>
               </tr>
             </thead>
             <tbody>
@@ -1895,34 +1919,43 @@ export default function App() {
                 .map(ing => {
                   const mixItem = mixture.find(m => m.ingredientId === ing.id);
                   const percentage = parseFloat(mixItem?.percentage) || 0;
-                  const price = parseFloat(ing.price) || 0;
+                  const weightInKg = percentage * 10 * batchSize;
                   return (
-                    <tr key={ing.id} className="text-sm">
-                      <td className="border border-gray-300 p-3 font-bold">{ing.name}</td>
-                      <td className="border border-gray-300 p-3 text-center font-mono">%{percentage.toFixed(3)}</td>
-                      <td className="border border-gray-300 p-3 text-center font-mono font-bold text-blue-700">{(percentage * 10).toFixed(3)} كغ</td>
-                      <td className="border border-gray-300 p-3 text-center font-mono">${price.toFixed(3)}</td>
-                      <td className="border border-gray-300 p-3 text-center font-mono">${((price * percentage) / 100).toFixed(4)}</td>
+                    <tr key={ing.id} className="text-lg">
+                      <td className="border-2 border-green-200 p-5 font-black text-gray-900">{ing.name}</td>
+                      <td className="border-2 border-green-200 p-5 text-center font-mono text-gray-500">%{percentage.toFixed(3)}</td>
+                      <td className="border-2 border-green-200 p-5 text-center font-mono font-black text-green-800 bg-green-50/50">
+                        {weightInKg >= 1 ? `${weightInKg.toFixed(3)} كغ` : `${(weightInKg * 1000).toFixed(0)} غرام`}
+                      </td>
                     </tr>
                   );
                 })}
-              <tr className="bg-green-50 font-bold">
-                <td className="border border-gray-300 p-3">المجموع الكلي للخلطة</td>
-                <td className="border border-gray-300 p-3 text-center">{totalPercentage.toFixed(2)}%</td>
-                <td className="border border-gray-300 p-3 text-center">{(totalPercentage * 10).toFixed(2)} كغ</td>
-                <td className="border border-gray-300 p-3 text-center bg-transparent">-</td>
-                <td className="border border-gray-300 p-3 text-center">${costPerKg.toFixed(4)}</td>
+              <tr className="bg-gray-900 text-white font-bold text-xl">
+                <td className="border-2 border-gray-900 p-6" colSpan={2}>المجموع الكلي للبريمكس والإضافات</td>
+                <td className="border-2 border-gray-900 p-6 text-center font-mono">
+                   {(activeIngredients
+                    .filter(ing => !(ing.name.includes('ذرة') || ing.name.includes('صويا') || ing.name.includes('زيت')))
+                    .reduce((sum, ing) => sum + (parseFloat(mixture.find(m => m.ingredientId === ing.id)?.percentage || '0') * 10 * batchSize), 0)
+                   ).toFixed(3)} كغ
+                </td>
               </tr>
             </tbody>
           </table>
-          <div className="mt-4 p-4 bg-green-900 text-white rounded-xl flex justify-between items-center" dir="rtl">
-             <span className="font-bold">سعر الطن المتوقع:</span>
-             <span className="text-2xl font-mono">${(costPerKg * 1000).toLocaleString()} / طن</span>
+          
+          <div className="mt-8 grid grid-cols-2 gap-6">
+             <div className="p-4 border-2 border-dashed border-gray-200 rounded-2xl">
+                <p className="text-xs font-bold text-gray-400 mb-8 uppercase tracking-widest text-center">توقيع المسؤول عن الميزان</p>
+                <div className="h-px bg-gray-100 w-full mb-4"></div>
+             </div>
+             <div className="p-4 border-2 border-dashed border-gray-200 rounded-2xl">
+                <p className="text-xs font-bold text-gray-400 mb-8 uppercase tracking-widest text-center">ملاحظات التحضير</p>
+                <div className="h-px bg-gray-100 w-full mb-4"></div>
+             </div>
           </div>
         </div>
 
-        <div className="mb-10 page-break-before text-right">
-          <h2 className="text-xl font-bold bg-gray-100 p-3 rounded-lg mb-4 border-r-4 border-indigo-600">ثالثاً: التحليل الغذائي والمقارنة</h2>
+        <div className="page-break-before pt-10 text-right">
+          <h2 className="text-xl font-bold bg-gray-100 p-3 rounded-lg mb-4 border-r-4 border-indigo-600">ثالثاً: التحليل الغذائي والمقارنة الدولية</h2>
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-50 text-gray-600 text-sm">
