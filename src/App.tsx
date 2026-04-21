@@ -17,13 +17,58 @@ import {
   History,
   Copy,
   ArrowRightLeft,
-  Lightbulb
+  Lightbulb,
+  Activity,
+  LineChart as LineChartIcon
 } from 'lucide-react';
-import { Ingredient, Nutrition, PhaseRequirement, FeedEntry, Snapshot } from './types';
-import { DEFAULT_INGREDIENTS, ROSS_308_PHASES_3, ROSS_308_PHASES_4, ROSS_308_PHASES_5, INITIAL_NUTRITION, TOP_ADDITIVES, TOP_COMPANIES } from './constants';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from 'recharts';
+import { Ingredient, Nutrition, PhaseRequirement, FeedEntry, Snapshot, PerformanceStandard } from './types';
+import { 
+  DEFAULT_INGREDIENTS, 
+  ROSS_308_PHASES_3, 
+  ROSS_308_PHASES_4, 
+  ROSS_308_PHASES_5, 
+  INITIAL_NUTRITION, 
+  TOP_ADDITIVES, 
+  TOP_COMPANIES,
+  ROSS_308_PERFORMANCE_DATA 
+} from './constants';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives'>('mixture');
+  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives' | 'performance'>('mixture');
+  const [selectedPerformanceDay, setSelectedPerformanceDay] = useState<number>(0);
+  const [temperature, setTemperature] = useState<number>(20);
+
+  const adjustedPerformanceData = useMemo(() => {
+    let factor = 1;
+    if (temperature > 21) {
+      factor = 1 - (temperature - 21) * 0.017;
+    } else if (temperature < 20) {
+      factor = 1 + (20 - temperature) * 0.015;
+    }
+
+    let cumIntake = 0;
+    return ROSS_308_PERFORMANCE_DATA.map(dayData => {
+      if (dayData.day === 0) return { ...dayData };
+      const adjDailyIntake = dayData.dailyIntake * factor;
+      cumIntake += adjDailyIntake;
+      return {
+        ...dayData,
+        dailyIntake: Math.round(adjDailyIntake),
+        cumIntake: Math.round(cumIntake),
+        fcr: cumIntake / dayData.weight,
+      };
+    });
+  }, [temperature]);
   
   const groupedAdditives = useMemo(() => {
     const groups: Record<string, typeof TOP_ADDITIVES> = {};
@@ -370,6 +415,13 @@ export default function App() {
               <Lightbulb className="w-4 h-4" />
               أفضل المضافات
             </button>
+            <button 
+              onClick={() => setActiveTab('performance')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === 'performance' ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              <Activity className="w-4 h-4" />
+              الأداء والنمو
+            </button>
             <div className="w-px h-6 bg-gray-200 mx-1 hidden md:block"></div>
             <button 
               onClick={() => window.print()}
@@ -689,7 +741,7 @@ export default function App() {
                             { k: 'ME', l: 'الطاقة (kcal)' },
                             { k: 'CP', l: 'بروتين (%)' },
                             { k: 'Ca', l: 'كالسيوم (%)' },
-                            { k: 'avP', l: 'فسفور (%)' },
+                            { k: 'avP', l: 'فوسفور (%)' },
                             { k: 'dLys', l: 'لايسين (%)' },
                             { k: 'dMet', l: 'ميثيونين (%)' }
                           ].map(({ k, l }) => {
@@ -1015,7 +1067,7 @@ export default function App() {
                         { k: 'ME', l: 'الطاقة الممثلة (ME)', u: 'kcal' },
                         { k: 'CP', l: 'بروتين خام (CP)', u: '%' },
                         { k: 'Ca', l: 'كالسيوم (Ca)', u: '%' },
-                        { k: 'avP', l: 'فسفور متاح (av.P)', u: '%' },
+                        { k: 'avP', l: 'فوسفور متاح (av.P)', u: '%' },
                         { k: 'K', l: 'بوتاسيوم (K)', u: '%' },
                         { k: 'Na', l: 'صوديوم (Na)', u: '%' },
                         { k: 'Cl', l: 'كلور (Cl)', u: '%' },
@@ -1197,6 +1249,216 @@ export default function App() {
               </section>
             </motion.div>
           )}
+
+          {activeTab === 'performance' && (
+            <motion.div
+              key="performance"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8 pb-20"
+            >
+              <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                  <div>
+                    <h2 className="text-2xl font-bold flex items-center gap-3">
+                      <Activity className="w-7 h-7 text-green-600" />
+                      تعقب الأداء والنمو (Ross 308)
+                    </h2>
+                    <p className="text-gray-500 mt-1">مقارنة أوزان واستهلاك العلف مع المعايير القياسية لشركة Aviagen.</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                      <div className="text-right">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">عمر الطيور (يوم)</p>
+                        <input 
+                          type="number"
+                          min="0"
+                          max="45"
+                          value={selectedPerformanceDay}
+                          onChange={(e) => setSelectedPerformanceDay(Math.min(45, Math.max(0, parseInt(e.target.value) || 0)))}
+                          className="w-20 bg-transparent border-none text-2xl font-bold text-gray-900 focus:ring-0 outline-none"
+                        />
+                      </div>
+                      <div className="w-px h-10 bg-gray-200"></div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">الوزن المستهدف</p>
+                        <p className="text-2xl font-bold text-green-600">{ROSS_308_PERFORMANCE_DATA[selectedPerformanceDay]?.weight} غ</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Temperature Control */}
+                <div className="bg-gray-50 border border-gray-200 rounded-3xl p-6 mb-12 shadow-sm">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div className="flex-1 space-y-4 w-full">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                          <Settings className="w-4 h-4 text-gray-400" />
+                          محاكاة الظروف المناخية (درجة الحرارة)
+                        </h3>
+                        <span className={`px-3 py-1 rounded-lg text-xs font-bold ${temperature > 21 ? 'bg-orange-100 text-orange-700' : (temperature < 20 ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700')}`}>
+                          {temperature > 21 ? 'تأثير الصيف (انخفاض الاستهلاك)' : (temperature < 20 ? 'تأثير الشتاء (زيادة الاستهلاك)' : 'منطقة الراحة الحرارية')}
+                        </span>
+                      </div>
+                      <div className="relative pt-1">
+                        <input 
+                          type="range" 
+                          min="10" 
+                          max="40" 
+                          step="1"
+                          value={temperature}
+                          onChange={(e) => setTemperature(parseInt(e.target.value))}
+                          className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-green-600"
+                        />
+                        <div className="flex justify-between text-[10px] font-bold text-gray-400 mt-2 px-1">
+                          <span>10°</span>
+                          <span>15°</span>
+                          <span className="text-green-600 font-black">20° م</span>
+                          <span>25°</span>
+                          <span>30°</span>
+                          <span>35°</span>
+                          <span>40°</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white p-4 rounded-2xl border border-gray-100 flex items-center gap-4 shadow-sm shrink-0">
+                       <div className="text-center px-4">
+                         <p className="text-[10px] text-gray-400 mb-1">الحرارة</p>
+                         <p className="text-2xl font-bold">{temperature}°م</p>
+                       </div>
+                       <div className="w-px h-10 bg-gray-200"></div>
+                       <div className="text-center px-4">
+                         <p className="text-[10px] text-gray-400 mb-1">الاستهلاك اليومي</p>
+                         <p className="text-xl font-bold text-orange-600">
+                           {adjustedPerformanceData[selectedPerformanceDay]?.dailyIntake} غ
+                         </p>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                  <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                    <h3 className="text-sm font-bold text-gray-700 mb-6 flex items-center gap-2">
+                       <Scale className="w-4 h-4 text-blue-600" />
+                       منحنى نمو الوزن الحي (غ)
+                    </h3>
+                    <div className="h-64 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={adjustedPerformanceData}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                          <XAxis 
+                            dataKey="day" 
+                            stroke="#9CA3AF" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false}
+                            label={{ value: 'العمر (يوم)', position: 'insideBottom', offset: -5, fontSize: 10 }}
+                          />
+                          <YAxis 
+                            stroke="#9CA3AF" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false}
+                            tickFormatter={(value) => `${value}g`}
+                          />
+                          <Tooltip 
+                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                            labelFormatter={(label) => `يوم ${label}`}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="weight" 
+                            name="الوزن القياسي"
+                            stroke="#16A34A" 
+                            strokeWidth={3} 
+                            dot={false}
+                            activeDot={{ r: 6, fill: '#16A34A', stroke: '#fff', strokeWidth: 2 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                    <h3 className="text-sm font-bold text-gray-700 mb-6 flex items-center gap-2">
+                       <FileText className="w-4 h-4 text-orange-600" />
+                       استهلاك العلف المعدل حسب الحرارة (غ/طير)
+                    </h3>
+                    <div className="h-64 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={adjustedPerformanceData}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                          <XAxis 
+                            dataKey="day" 
+                            stroke="#9CA3AF" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false}
+                          />
+                          <YAxis 
+                            stroke="#9CA3AF" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false}
+                            tickFormatter={(value) => `${value}g`}
+                          />
+                          <Tooltip 
+                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                            labelFormatter={(label) => `يوم ${label}`}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="cumIntake" 
+                            name="الاستهلاك المعدل"
+                            stroke="#EA580C" 
+                            strokeWidth={3} 
+                            dot={false}
+                            activeDot={{ r: 6, fill: '#EA580C', stroke: '#fff', strokeWidth: 2 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overflow-hidden rounded-2xl border border-gray-100">
+                  <table className="w-full text-sm text-right">
+                    <thead className="bg-gray-50 text-gray-500 uppercase tracking-widest text-[10px]">
+                      <tr>
+                        <th className="px-6 py-4">اليوم</th>
+                        <th className="px-6 py-4">الوزن (غ)</th>
+                        <th className="px-6 py-4">الزيادة اليومية (غ)</th>
+                        <th className="px-6 py-4">الاستهلاك اليومي (غ)</th>
+                        <th className="px-6 py-4">الاستهلاك التراكمي (غ)</th>
+                        <th className="px-6 py-4">معامل التحويل (FCR)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 font-mono">
+                      {adjustedPerformanceData.filter((_, i) => i % 7 === 0 || i === selectedPerformanceDay || i === 45).map((row) => (
+                        <tr 
+                          key={row.day} 
+                          className={`hover:bg-gray-50 transition-colors ${selectedPerformanceDay === row.day ? 'bg-green-50/50' : ''}`}
+                        >
+                          <td className="px-6 py-3 font-bold text-gray-900">{row.day}</td>
+                          <td className="px-6 py-3">{row.weight}</td>
+                          <td className="px-6 py-3 text-blue-600">{row.dailyGain}</td>
+                          <td className="px-6 py-3 text-orange-600">{row.dailyIntake}</td>
+                          <td className="px-6 py-3 text-orange-800">{row.cumIntake}</td>
+                          <td className="px-6 py-3 font-bold text-green-700">{row.fcr.toFixed(3)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="p-4 bg-gray-50 text-center text-[10px] text-gray-400">
+                    * ملاحظة: هذه الأرقام تمثل الأداء القياسي (As-Hatched) لشركة Aviagen لسلالة Ross 308.
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
 
@@ -1296,7 +1558,7 @@ export default function App() {
                 { k: 'ME', l: 'الطاقة الممثلة (ME)', u: 'kcal' },
                 { k: 'CP', l: 'بروتين خام (CP)', u: '%' },
                 { k: 'Ca', l: 'كالسيوم (Ca)', u: '%' },
-                { k: 'avP', l: 'فسفور متاح (av.P)', u: '%' },
+                { k: 'avP', l: 'فوسفور متاح (av.P)', u: '%' },
                 { k: 'K', l: 'بوتاسيوم (K)', u: '%' },
                 { k: 'Na', l: 'صوديوم (Na)', u: '%' },
                 { k: 'Cl', l: 'كلور (Cl)', u: '%' },

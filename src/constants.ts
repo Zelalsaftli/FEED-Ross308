@@ -1,4 +1,4 @@
-import { Ingredient, PhaseRequirement, Nutrition } from './types';
+import { Ingredient, PhaseRequirement, Nutrition, PerformanceStandard } from './types';
 
 export const INITIAL_NUTRITION: Nutrition = {
   ME: 0, CP: 0, Ca: 0, avP: 0, Na: 0, Cl: 0,
@@ -319,7 +319,7 @@ export const TOP_ADDITIVES: AdditiveInfo[] = [
     benefits: [
       "ثباتية حرارية ممتازة.",
       " BASF من الشركات الرائدة في الإنزيمات والفيتامينات.",
-      "تحرير أقصى قدر من الفسفور النباتي."
+      "تحرير أقصى قدر من الفوسفور النباتي."
     ]
   },
   {
@@ -671,4 +671,53 @@ export const TOP_ADDITIVES: AdditiveInfo[] = [
 export const TOP_COMPANIES = [
   "DSM", "BASF", "Evonik", "Adisseo", "Novozymes", "DuPont", 
   "Alltech", "Kemin", "Cargill", "ADM", "Nutreco", "Chr. Hansen"
+];
+
+export const ROSS_308_PERFORMANCE_DATA: PerformanceStandard[] = [
+  { day: 0, weight: 44, dailyGain: 0, dailyIntake: 0, cumIntake: 0, fcr: 0 },
+  { day: 1, weight: 62, dailyGain: 18, dailyIntake: 12, cumIntake: 12, fcr: 0.196 },
+  { day: 2, weight: 81, dailyGain: 19, dailyIntake: 16, cumIntake: 28, fcr: 0.352 },
+  { day: 3, weight: 102, dailyGain: 21, dailyIntake: 20, cumIntake: 48, fcr: 0.476 },
+  { day: 4, weight: 125, dailyGain: 23, dailyIntake: 24, cumIntake: 72, fcr: 0.577 },
+  { day: 5, weight: 151, dailyGain: 26, dailyIntake: 27, cumIntake: 100, fcr: 0.658 },
+  { day: 6, weight: 181, dailyGain: 29, dailyIntake: 31, cumIntake: 131, fcr: 0.724 },
+  { day: 7, weight: 213, dailyGain: 32, dailyIntake: 35, cumIntake: 166, fcr: 0.780 },
+  { day: 8, weight: 249, dailyGain: 36, dailyIntake: 39, cumIntake: 206, fcr: 0.826 },
+  { day: 9, weight: 288, dailyGain: 39, dailyIntake: 44, cumIntake: 249, fcr: 0.865 },
+  { day: 10, weight: 330, dailyGain: 42, dailyIntake: 48, cumIntake: 297, fcr: 0.900 },
+  { day: 11, weight: 376, dailyGain: 46, dailyIntake: 52, cumIntake: 349, fcr: 0.930 },
+  { day: 12, weight: 425, dailyGain: 49, dailyIntake: 57, cumIntake: 406, fcr: 0.957 },
+  { day: 13, weight: 477, dailyGain: 52, dailyIntake: 62, cumIntake: 468, fcr: 0.982 },
+  { day: 14, weight: 533, dailyGain: 56, dailyIntake: 67, cumIntake: 535, fcr: 1.005 },
+  { day: 15, weight: 592, dailyGain: 59, dailyIntake: 72, cumIntake: 608, fcr: 1.026 },
+  { day: 16, weight: 655, dailyGain: 62, dailyIntake: 77, cumIntake: 685, fcr: 1.047 },
+  { day: 17, weight: 720, dailyGain: 66, dailyIntake: 83, cumIntake: 768, fcr: 1.066 },
+  { day: 18, weight: 789, dailyGain: 69, dailyIntake: 88, cumIntake: 856, fcr: 1.086 },
+  { day: 19, weight: 860, dailyGain: 72, dailyIntake: 94, cumIntake: 950, fcr: 1.105 },
+  { day: 20, weight: 935, dailyGain: 74, dailyIntake: 100, cumIntake: 1050, fcr: 1.123 },
+  { day: 21, weight: 1012, dailyGain: 77, dailyIntake: 105, cumIntake: 1155, fcr: 1.142 },
+  { day: 22, weight: 1092, dailyGain: 80, dailyIntake: 111, cumIntake: 1266, fcr: 1.160 },
+  { day: 23, weight: 1174, dailyGain: 82, dailyIntake: 117, cumIntake: 1383, fcr: 1.178 },
+  { day: 24, weight: 1258, dailyGain: 85, dailyIntake: 122, cumIntake: 1505, fcr: 1.196 },
+  { day: 25, weight: 1345, dailyGain: 87, dailyIntake: 128, cumIntake: 1633, fcr: 1.214 },
+  { day: 26, weight: 1434, dailyGain: 89, dailyIntake: 134, cumIntake: 1767, fcr: 1.233 },
+  { day: 27, weight: 1524, dailyGain: 91, dailyIntake: 139, cumIntake: 1907, fcr: 1.251 },
+  { day: 28, weight: 1616, dailyGain: 92, dailyIntake: 145, cumIntake: 2051, fcr: 1.269 },
+  { day: 29, weight: 1710, dailyGain: 94, dailyIntake: 150, cumIntake: 2202, fcr: 1.288 },
+  { day: 30, weight: 1805, dailyGain: 95, dailyIntake: 156, cumIntake: 2357, fcr: 1.306 },
+  { day: 31, weight: 1901, dailyGain: 96, dailyIntake: 161, cumIntake: 2518, fcr: 1.325 },
+  { day: 32, weight: 1999, dailyGain: 97, dailyIntake: 166, cumIntake: 2684, fcr: 1.343 },
+  { day: 33, weight: 2097, dailyGain: 98, dailyIntake: 171, cumIntake: 2855, fcr: 1.362 },
+  { day: 34, weight: 2196, dailyGain: 99, dailyIntake: 176, cumIntake: 3031, fcr: 1.381 },
+  { day: 35, weight: 2296, dailyGain: 100, dailyIntake: 180, cumIntake: 3211, fcr: 1.399 },
+  { day: 36, weight: 2396, dailyGain: 100, dailyIntake: 185, cumIntake: 3396, fcr: 1.418 },
+  { day: 37, weight: 2496, dailyGain: 100, dailyIntake: 189, cumIntake: 3584, fcr: 1.437 },
+  { day: 38, weight: 2597, dailyGain: 101, dailyIntake: 193, cumIntake: 3777, fcr: 1.456 },
+  { day: 39, weight: 2697, dailyGain: 101, dailyIntake: 197, cumIntake: 3974, fcr: 1.474 },
+  { day: 40, weight: 2798, dailyGain: 100, dailyIntake: 201, cumIntake: 4175, fcr: 1.493 },
+  { day: 41, weight: 2898, dailyGain: 100, dailyIntake: 204, cumIntake: 4379, fcr: 1.512 },
+  { day: 42, weight: 2998, dailyGain: 100, dailyIntake: 207, cumIntake: 4586, fcr: 1.531 },
+  { day: 43, weight: 3097, dailyGain: 100, dailyIntake: 211, cumIntake: 4797, fcr: 1.550 },
+  { day: 44, weight: 3197, dailyGain: 99, dailyIntake: 213, cumIntake: 5010, fcr: 1.569 },
+  { day: 45, weight: 3295, dailyGain: 98, dailyIntake: 216, cumIntake: 5226, fcr: 1.587 }
 ];

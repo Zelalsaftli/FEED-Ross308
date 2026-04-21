@@ -45,3 +45,12 @@ export interface Snapshot {
   totalCost: number;
   timestamp: string;
 }
+
+export interface PerformanceStandard {
+  day: number;
+  weight: number;      // g
+  dailyGain: number;   // g
+  dailyIntake: number; // g
+  cumIntake: number;   // g
+  fcr: number;
+}
