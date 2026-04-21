@@ -437,6 +437,7 @@ export default function App() {
                         <tr>
                           <th className="px-6 py-4 text-right sticky right-0 bg-gray-50 z-10">المكون</th>
                           <th className="px-4 py-4 w-32 font-bold text-gray-900 border-x border-gray-100">نسبة الإدخال (%)</th>
+                          <th className="px-4 py-4 w-32 font-bold text-blue-700 bg-blue-50/30 border-x border-gray-100">الكمية (كغ/طن)</th>
                           <th className="px-4 py-4 w-32 font-bold text-green-700">السعر ($/كغ)</th>
                           <th className="px-4 py-4 w-32 font-bold text-gray-900">تكلفة المكون</th>
                           <th className="px-4 py-4 w-20"></th>
@@ -476,6 +477,9 @@ export default function App() {
                                     }}
                                     className="w-24 bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-center font-bold text-gray-900 focus:ring-2 focus:ring-green-500 outline-none shadow-sm"
                                   />
+                                </td>
+                                <td className="px-4 py-4 text-center font-mono font-bold text-blue-700 bg-blue-50/20 border-x border-gray-50">
+                                  {((parseFloat(mixItem?.percentage || '0') || 0) * 10).toFixed(2)}
                                 </td>
                                 <td className="px-4 py-4 text-center">
                                   <input 
@@ -1240,6 +1244,7 @@ export default function App() {
               <tr className="bg-gray-50 text-gray-600 text-sm">
                 <th className="border border-gray-300 p-3 text-right">المكون</th>
                 <th className="border border-gray-300 p-3 text-center">النسبة (%)</th>
+                <th className="border border-gray-300 p-3 text-center">الكمية (كغ/طن)</th>
                 <th className="border border-gray-300 p-3 text-center">السعر ($/كغ)</th>
                 <th className="border border-gray-300 p-3 text-center">التكلفة ($)</th>
               </tr>
@@ -1253,6 +1258,7 @@ export default function App() {
                   <tr key={ing.id} className="text-sm">
                     <td className="border border-gray-300 p-3 font-bold">{ing.name}</td>
                     <td className="border border-gray-300 p-3 text-center font-mono">%{percentage.toFixed(2)}</td>
+                    <td className="border border-gray-300 p-3 text-center font-mono font-bold text-blue-700">{(percentage * 10).toFixed(2)} كغ</td>
                     <td className="border border-gray-300 p-3 text-center font-mono">${price.toFixed(3)}</td>
                     <td className="border border-gray-300 p-3 text-center font-mono">${((price * percentage) / 100).toFixed(4)}</td>
                   </tr>
@@ -1261,6 +1267,7 @@ export default function App() {
               <tr className="bg-green-50 font-bold">
                 <td className="border border-gray-300 p-3">المجموع الكلي</td>
                 <td className="border border-gray-300 p-3 text-center">{totalPercentage.toFixed(2)}%</td>
+                <td className="border border-gray-300 p-3 text-center">{(totalPercentage * 10).toFixed(2)} كغ</td>
                 <td className="border border-gray-300 p-3 text-center bg-transparent">-</td>
                 <td className="border border-gray-300 p-3 text-center">${costPerKg.toFixed(4)}</td>
               </tr>
