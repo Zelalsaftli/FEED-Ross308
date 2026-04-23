@@ -46,6 +46,8 @@ export interface Snapshot {
   timestamp: string;
 }
 
+export type Sex = 'male' | 'female' | 'mixed';
+
 export interface PerformanceStandard {
   day: number;
   weight: number;      // g

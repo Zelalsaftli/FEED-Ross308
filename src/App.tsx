@@ -23,7 +23,10 @@ import {
   Facebook,
   MapPin,
   ExternalLink,
-  RefreshCcw
+  RefreshCcw,
+  Beaker,
+  Database,
+  Sun
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -35,6 +38,10 @@ import {
   Legend, 
   ResponsiveContainer 
 } from 'recharts';
+import GrowthEngineTool from './components/GrowthEngineTool';
+import RegressionEngineTool from './components/RegressionEngineTool';
+import SummerStrategyTool from './components/SummerStrategyTool';
+import { SyrianBroilerEngine, ModelSettings } from './services/syrianModelEngine';
 import { Ingredient, Nutrition, PhaseRequirement, FeedEntry, Snapshot, PerformanceStandard } from './types';
 import { 
   DEFAULT_INGREDIENTS, 
@@ -48,9 +55,21 @@ import {
 } from './constants';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives' | 'performance' | 'simulator'>('mixture');
+  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives' | 'performance' | 'simulator' | 'regression' | 'summer'>('mixture');
   const [selectedPerformanceDay, setSelectedPerformanceDay] = useState<number>(0);
-  const [temperature, setTemperature] = useState<number>(20);
+  const [temperature, setTemperature] = useState<number>(38);
+  const [performanceMode, setPerformanceMode] = useState<'standard' | 'advanced'>('standard');
+  const [syrianModelSettings, setSyrianModelSettings] = useState({
+    performanceFactor: 0.95,
+    heatCorrection: true,
+    cornType: 'Ukrainian' as 'Syrian' | 'Ukrainian',
+    soyType: 'Soy46' as 'Soy44' | 'Soy46'
+  });
+
+  const [regressionCoeffs, setRegressionCoeffs] = useState({
+    em: { a: 2.80, b: 0.015 },
+    lys: { a: 1.00, b: 0.0010 }
+  });
 
   const adjustedPerformanceData = useMemo(() => {
     let factor = 1;
@@ -72,6 +91,22 @@ export default function App() {
         fcr: cumIntake / dayData.weight,
       };
     });
+  }, [temperature]);
+
+  const fiDropPercent = useMemo(() => {
+    const standardFI = ROSS_308_PERFORMANCE_DATA[selectedPerformanceDay]?.dailyIntake || 0;
+    const adjustedFI = adjustedPerformanceData[selectedPerformanceDay]?.dailyIntake || 0;
+    if (standardFI <= 0) return 0;
+    return ((standardFI - adjustedFI) / standardFI) * 100;
+  }, [selectedPerformanceDay, adjustedPerformanceData]);
+
+  const currentHeatFactor = useMemo(() => {
+    const t = temperature;
+    if (t <= 28) return 1.0;
+    if (t >= 32) return 0.85;
+    const frac = (t - 28) / (32 - 28);
+    const drop = 0.05 + frac * (0.15 - 0.05);
+    return 1.0 - drop;
   }, [temperature]);
   
   const groupedAdditives = useMemo(() => {
@@ -161,7 +196,38 @@ export default function App() {
 
   const availablePhases = allCustomPhases[selectedPhaseCount as 3|4|5] || allCustomPhases[3];
   
-  const currentRequirement = availablePhases[currentPhaseIndex]?.nutrition || availablePhases[0].nutrition;
+  const isSummerStrategyActive = useMemo(() => {
+    return temperature >= 30 || fiDropPercent >= 8 || currentHeatFactor <= 0.92;
+  }, [temperature, fiDropPercent, currentHeatFactor]);
+
+  const baseRequirement = useMemo(() => {
+    return availablePhases[currentPhaseIndex]?.nutrition || availablePhases[0].nutrition;
+  }, [availablePhases, currentPhaseIndex]);
+
+  const currentRequirement = useMemo(() => {
+    if (!isSummerStrategyActive) return baseRequirement;
+
+    const adjusted = { ...baseRequirement };
+    
+    // Energy (EM) Adjustment based on FI Drop
+    let emOffset = 0;
+    if (fiDropPercent > 18) emOffset = 80;
+    else if (fiDropPercent >= 12) emOffset = 60;
+    else if (fiDropPercent >= 8) emOffset = 40;
+    
+    adjusted.ME = (parseFloat(baseRequirement.ME) + emOffset).toString();
+    
+    // Amino Acid Strategy (+6% Lys, +4% Thr, +3% Met)
+    adjusted.dLys = (parseFloat(baseRequirement.dLys) * 1.06).toFixed(3);
+    adjusted.dThr = (parseFloat(baseRequirement.dThr) * 1.04).toFixed(3);
+    adjusted.dMet = (parseFloat(baseRequirement.dMet) * 1.03).toFixed(3);
+    
+    // Minerals Strategy
+    adjusted.Ca = (parseFloat(baseRequirement.Ca) - 0.05).toFixed(3);
+    adjusted.avP = (parseFloat(baseRequirement.avP) - 0.03).toFixed(3);
+    
+    return adjusted;
+  }, [baseRequirement, isSummerStrategyActive, fiDropPercent]);
 
   const activeIngredients = useMemo(() => {
     return mixture.map(m => ingredients.find(ing => ing.id === m.ingredientId)).filter(Boolean) as Ingredient[];
@@ -350,6 +416,37 @@ export default function App() {
       3: JSON.parse(JSON.stringify(ROSS_308_PHASES_3)),
       4: JSON.parse(JSON.stringify(ROSS_308_PHASES_4)),
       5: JSON.parse(JSON.stringify(ROSS_308_PHASES_5))
+    });
+  };
+
+  const applySyrianModel = () => {
+    if (!window.confirm("سيقوم النظام الآن بتوليد احتياجات غذائية مخصصة بناءً على 'النموذج السوري v1.0' والظروف البيئية الحالية. هل تود الاستمرار؟")) return;
+
+    const settings: ModelSettings = {
+      sex: 'male',
+      performanceFactor: syrianModelSettings.performanceFactor,
+      temperature: temperature,
+      heatCorrection: syrianModelSettings.heatCorrection,
+      cornType: syrianModelSettings.cornType,
+      soyType: syrianModelSettings.soyType
+    };
+
+    const updatePhaseSet = (phases: PhaseRequirement[]) => {
+      return phases.map((p, idx) => {
+        // Map phase index to core phase 1-5 logic
+        const logicPhase = Math.min(5, Math.ceil(((idx + 1) / phases.length) * 5));
+        const output = SyrianBroilerEngine.calculatePhase(logicPhase, settings);
+        return {
+          ...p,
+          nutrition: output.nutrition
+        };
+      });
+    };
+
+    setAllCustomPhases({
+      3: updatePhaseSet(JSON.parse(JSON.stringify(ROSS_308_PHASES_3))),
+      4: updatePhaseSet(JSON.parse(JSON.stringify(ROSS_308_PHASES_4))),
+      5: updatePhaseSet(JSON.parse(JSON.stringify(ROSS_308_PHASES_5)))
     });
   };
 
@@ -569,6 +666,13 @@ export default function App() {
             >
               <RefreshCcw className="w-4 h-4" />
               محاكي الاستبدال
+            </button>
+            <button 
+              onClick={() => setActiveTab('regression')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === 'regression' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              <Database className="w-4 h-4" />
+              تحليل الحقول
             </button>
             <div className="w-px h-6 bg-gray-200 mx-1 hidden md:block"></div>
             <button 
@@ -1156,18 +1260,77 @@ export default function App() {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-8 pb-20"
             >
+              <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8 mb-8">
+                <h3 className="text-lg font-bold mb-6 flex items-center gap-2 border-r-4 border-green-600 pr-3">
+                   إعدادات النموذج السوري (Syrian Model Control)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">معامل الأداء (Performance Factor)</label>
+                      <div className="flex items-center gap-3">
+                         <input 
+                           type="range" min="0.80" max="1.00" step="0.01" 
+                           value={syrianModelSettings.performanceFactor}
+                           onChange={(e) => setSyrianModelSettings({...syrianModelSettings, performanceFactor: parseFloat(e.target.value)})}
+                           className="flex-1 accent-green-600"
+                         />
+                         <span className="font-mono font-bold text-green-700">%{Math.round(syrianModelSettings.performanceFactor * 100)}</span>
+                      </div>
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">تصحيح الحرارة (Heat Correction)</label>
+                      <button 
+                        onClick={() => setSyrianModelSettings({...syrianModelSettings, heatCorrection: !syrianModelSettings.heatCorrection})}
+                        className={`w-full py-2 rounded-xl text-xs font-bold transition-all border ${syrianModelSettings.heatCorrection ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}
+                      >
+                        {syrianModelSettings.heatCorrection ? 'التصحيح مفعل ON' : 'التصحيح معطل OFF'}
+                      </button>
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">نوع الذرة</label>
+                      <select 
+                        value={syrianModelSettings.cornType}
+                        onChange={(e) => setSyrianModelSettings({...syrianModelSettings, cornType: e.target.value as any})}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+                      >
+                        <option value="Syrian">ذرة سورية (CP 7.2%)</option>
+                        <option value="Ukrainian">ذرة أوكرانية (CP 7.8%)</option>
+                      </select>
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">كسبة الصويا</label>
+                      <select 
+                        value={syrianModelSettings.soyType}
+                        onChange={(e) => setSyrianModelSettings({...syrianModelSettings, soyType: e.target.value as any})}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+                      >
+                        <option value="Soy44">صويا 44%</option>
+                        <option value="Soy46">صويا 46%</option>
+                      </select>
+                   </div>
+                </div>
+              </div>
               {/* Phase Selection (Consolidated here) */}
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 flex flex-col md:flex-row items-center gap-6 mb-8">
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-bold text-blue-900">نظام التغذية والمرحلة</h3>
-                    <button 
-                      onClick={resetRequirementsToDefault}
-                      className="px-3 py-1 bg-white/50 text-blue-700 rounded-lg text-[10px] font-bold hover:bg-white transition-all flex items-center gap-1 border border-blue-200"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      استعادة دليل Ross 308
-                    </button>
+                    <div className="flex gap-2">
+                       <button 
+                         onClick={resetRequirementsToDefault}
+                         className="px-3 py-1 bg-white/50 text-blue-700 rounded-lg text-[10px] font-bold hover:bg-white transition-all flex items-center gap-1 border border-blue-200"
+                       >
+                         <Trash2 className="w-3 h-3" />
+                         استعادة دليل Ross 308
+                       </button>
+                       <button 
+                         onClick={applySyrianModel}
+                         className="px-3 py-1 bg-green-600 text-white rounded-lg text-[10px] font-bold hover:bg-green-700 transition-all flex items-center gap-1 shadow-sm"
+                       >
+                         <Beaker className="w-3 h-3" />
+                         تطبيق النموذج السوري v1.0
+                       </button>
+                    </div>
                   </div>
                   <p className="text-sm text-blue-700">اختر عدد المراحل والمرحلة الحالية للمقارنة الدقيقة.</p>
                 </div>
@@ -1420,7 +1583,32 @@ export default function App() {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-8 pb-20"
             >
-              <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
+              <div className="flex items-center justify-between mb-2">
+                 <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-fit">
+                    <button 
+                      onClick={() => setPerformanceMode('standard')}
+                      className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${performanceMode === 'standard' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      مقارنة المعايير القياسية
+                    </button>
+                    <button 
+                      onClick={() => setPerformanceMode('advanced')}
+                      className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${performanceMode === 'advanced' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      المحرك الحيوي المتقدم (Engine)
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab('summer')}
+                      className={`px-6 py-2 rounded-xl text-sm font-bold transition-all text-orange-600 hover:text-orange-700 flex items-center gap-2`}
+                    >
+                      <Sun className="w-4 h-4" />
+                      استراتيجية الصيف السورية
+                    </button>
+                 </div>
+              </div>
+
+              {performanceMode === 'standard' ? (
+                <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                   <div>
                     <h2 className="text-2xl font-bold flex items-center gap-3">
@@ -1619,6 +1807,33 @@ export default function App() {
                   </div>
                 </div>
               </div>
+            ) : (
+              <GrowthEngineTool coeffs={regressionCoeffs} />
+            )}
+          </motion.div>
+        )}
+
+          {activeTab === 'regression' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <RegressionEngineTool onApply={(coeffs) => setRegressionCoeffs(coeffs)} />
+            </motion.div>
+          )}
+
+          {activeTab === 'summer' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <SummerStrategyTool 
+                currentTemp={temperature}
+                fiDropPercent={fiDropPercent}
+                heatFactor={currentHeatFactor}
+              />
             </motion.div>
           )}
 
@@ -1846,7 +2061,14 @@ export default function App() {
             />
             <div className="text-right" dir="rtl">
               <h1 className="text-3xl font-bold text-gray-900">شركة الأسعد إخوان للدواجن</h1>
-              <p className="text-lg font-bold text-green-700">تقرير تحليل علائق Ross 308</p>
+              <div className="flex items-center gap-3">
+                <p className="text-lg font-bold text-green-700">تقرير تحليل علائق Ross 308</p>
+                {isSummerStrategyActive && (
+                  <span className="px-3 py-0.5 bg-orange-100 text-orange-700 rounded-lg text-xs font-black uppercase tracking-tighter">
+                    Syrian Summer Strategy v1.0 Activated
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-4 mt-2">
                 <p className="text-sm text-gray-500 italic">تقديم وتصميم: د. ظلال الصافتلي (+963946656403)</p>
                 <div className="w-1 h-1 rounded-full bg-gray-300"></div>
@@ -1863,6 +2085,25 @@ export default function App() {
 
         <div className="mb-10 text-right">
           <h2 className="text-xl font-bold bg-gray-100 p-3 rounded-lg mb-4 border-r-4 border-blue-600">أولاً: المكونات الرئيسية (Macro Ingredients)</h2>
+          
+          {isSummerStrategyActive && (
+            <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-2xl flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-orange-100 rounded-xl">
+                  <Sun className="w-6 h-6 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-orange-600 uppercase">سياق الإجهاد الحراري</p>
+                  <p className="text-sm font-bold text-gray-700">الحرارة: {temperature}°م | نقص الاستهلاك: {fiDropPercent.toFixed(1)}% | معامل الحرارة: {currentHeatFactor.toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] font-bold text-gray-400">إزاحة الطاقة المعتمدة</p>
+                <p className="text-lg font-black text-orange-700">+{fiDropPercent > 18 ? '80' : (fiDropPercent >= 12 ? '60' : '40')} kcal/kg</p>
+              </div>
+            </div>
+          )}
+
           <table className="w-full border-collapse mb-8">
             <thead>
               <tr className="bg-gray-50 text-gray-700 text-sm">

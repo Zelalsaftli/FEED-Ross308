@@ -70,17 +70,17 @@ export const DEFAULT_INGREDIENTS: Ingredient[] = DEFAULT_INGREDIENTS_LIST.map((n
   } else if (name.includes("زيت")) {
     nutrition.ME = 8800; price = 1.35;
   } else if (name.includes("اللايسين")) {
-    nutrition.dLys = 74; price = 2.1;
+    nutrition.dLys = 75.4; nutrition.ME = 3990; nutrition.CP = 94.4; price = 2.1;
   } else if (name.includes("الميثيونين")) {
-    nutrition.dMet = 94; price = 3.6;
+    nutrition.dMet = 96; nutrition.ME = 5020; nutrition.CP = 58.1; price = 3.6;
   } else if (name.includes("الثريونين")) {
-    nutrition.dThr = 90; price = 2.7;
+    nutrition.dThr = 96; nutrition.ME = 3630; nutrition.CP = 72.5; price = 2.7;
   } else if (name.includes("الفالين")) {
-    nutrition.dVal = 96; price = 7;
+    nutrition.dVal = 96; nutrition.ME = 5500; nutrition.CP = 72.6; price = 7;
   } else if (name.includes("إيزوليوسين")) {
-    nutrition.dIso = 96; price = 7;
+    nutrition.dIso = 96; nutrition.ME = 6520; nutrition.CP = 65.5; price = 7;
   } else if (name.includes("أرجنين")) {
-    nutrition.dArg = 96; price = 9.25;
+    nutrition.dArg = 96; nutrition.ME = 6360; nutrition.CP = 201.0; price = 9.25;
   } else if (name.includes("كلسي") || name.includes("نحاته")) {
     nutrition.Ca = 36; price = 0.04;
   } else if (name.includes("فوسفات")) {
