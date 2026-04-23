@@ -57,7 +57,8 @@ import {
 export default function App() {
   const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives' | 'performance' | 'simulator' | 'regression' | 'summer'>('mixture');
   const [selectedPerformanceDay, setSelectedPerformanceDay] = useState<number>(0);
-  const [temperature, setTemperature] = useState<number>(38);
+  const [temperature, setTemperature] = useState<number>(33);
+  const [humidity, setHumidity] = useState<number>(55);
   const [performanceMode, setPerformanceMode] = useState<'standard' | 'advanced'>('standard');
   const [syrianModelSettings, setSyrianModelSettings] = useState({
     performanceFactor: 0.95,
@@ -71,12 +72,17 @@ export default function App() {
     lys: { a: 1.00, b: 0.0010 }
   });
 
+  const heatIndex = useMemo(() => {
+    return SyrianBroilerEngine.calculateHeatIndex(temperature, humidity);
+  }, [temperature, humidity]);
+
   const adjustedPerformanceData = useMemo(() => {
     let factor = 1;
-    if (temperature > 21) {
-      factor = 1 - (temperature - 21) * 0.017;
-    } else if (temperature < 20) {
-      factor = 1 + (20 - temperature) * 0.015;
+    // Using Heat Index for performance scaling
+    if (heatIndex > 26) {
+      factor = 1 - (heatIndex - 23) * 0.016;
+    } else if (heatIndex < 20) {
+      factor = 1 + (20 - heatIndex) * 0.013;
     }
 
     let cumIntake = 0;
@@ -101,13 +107,13 @@ export default function App() {
   }, [selectedPerformanceDay, adjustedPerformanceData]);
 
   const currentHeatFactor = useMemo(() => {
-    const t = temperature;
-    if (t <= 28) return 1.0;
-    if (t >= 32) return 0.85;
-    const frac = (t - 28) / (32 - 28);
+    const hi = heatIndex;
+    if (hi <= 28) return 1.0;
+    if (hi >= 32) return 0.85;
+    const frac = (hi - 28) / (32 - 28);
     const drop = 0.05 + frac * (0.15 - 0.05);
     return 1.0 - drop;
-  }, [temperature]);
+  }, [heatIndex]);
   
   const groupedAdditives = useMemo(() => {
     const groups: Record<string, typeof TOP_ADDITIVES> = {};
@@ -197,8 +203,8 @@ export default function App() {
   const availablePhases = allCustomPhases[selectedPhaseCount as 3|4|5] || allCustomPhases[3];
   
   const isSummerStrategyActive = useMemo(() => {
-    return temperature >= 30 || fiDropPercent >= 8 || currentHeatFactor <= 0.92;
-  }, [temperature, fiDropPercent, currentHeatFactor]);
+    return heatIndex >= 30 || fiDropPercent >= 8 || currentHeatFactor <= 0.92;
+  }, [heatIndex, fiDropPercent, currentHeatFactor]);
 
   const baseRequirement = useMemo(() => {
     return availablePhases[currentPhaseIndex]?.nutrition || availablePhases[0].nutrition;
@@ -218,16 +224,34 @@ export default function App() {
     adjusted.ME = (parseFloat(baseRequirement.ME) + emOffset).toString();
     
     // Amino Acid Strategy (+6% Lys, +4% Thr, +3% Met)
-    adjusted.dLys = (parseFloat(baseRequirement.dLys) * 1.06).toFixed(3);
-    adjusted.dThr = (parseFloat(baseRequirement.dThr) * 1.04).toFixed(3);
-    adjusted.dMet = (parseFloat(baseRequirement.dMet) * 1.03).toFixed(3);
+    let lysFactor = 1.06;
+    let thrFactor = 1.04;
+    let metFactor = 1.03;
+
+    let finalLys = parseFloat(baseRequirement.dLys) * lysFactor;
+    
+    // Corn Correction: SyrianCorn (-1.5% Lys) or UkrainianCorn (-0.5% Lys)
+    // Applied AFTER heat adjustment factor on the AA target
+    if (syrianModelSettings.cornType === 'Syrian') {
+      finalLys = finalLys * (1 - 0.015);
+    } else {
+      finalLys = finalLys * (1 - 0.005);
+    }
+
+    adjusted.dLys = finalLys.toFixed(3);
+    adjusted.dThr = (parseFloat(baseRequirement.dThr) * thrFactor).toFixed(3);
+    adjusted.dMet = (parseFloat(baseRequirement.dMet) * metFactor).toFixed(3);
     
     // Minerals Strategy
     adjusted.Ca = (parseFloat(baseRequirement.Ca) - 0.05).toFixed(3);
     adjusted.avP = (parseFloat(baseRequirement.avP) - 0.03).toFixed(3);
+
+    // Electrolytes Heat Correction: Na +0.02%, Cl -0.01%
+    adjusted.Na = (parseFloat(baseRequirement.Na || '0') + 0.02).toFixed(3);
+    adjusted.Cl = (parseFloat(baseRequirement.Cl || '0') - 0.01).toFixed(3);
     
     return adjusted;
-  }, [baseRequirement, isSummerStrategyActive, fiDropPercent]);
+  }, [baseRequirement, isSummerStrategyActive, fiDropPercent, syrianModelSettings.cornType]);
 
   const activeIngredients = useMemo(() => {
     return mixture.map(m => ingredients.find(ing => ing.id === m.ingredientId)).filter(Boolean) as Ingredient[];
@@ -426,6 +450,7 @@ export default function App() {
       sex: 'male',
       performanceFactor: syrianModelSettings.performanceFactor,
       temperature: temperature,
+      humidity: humidity,
       heatCorrection: syrianModelSettings.heatCorrection,
       cornType: syrianModelSettings.cornType,
       soyType: syrianModelSettings.soyType
@@ -1639,52 +1664,104 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Temperature Control */}
+                {/* Temperature & Humidity Controls */}
                 <div className="bg-gray-50 border border-gray-200 rounded-3xl p-6 mb-12 shadow-sm">
-                  <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                    <div className="flex-1 space-y-4 w-full">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                          <Settings className="w-4 h-4 text-gray-400" />
-                          محاكاة الظروف المناخية (درجة الحرارة)
-                        </h3>
-                        <span className={`px-3 py-1 rounded-lg text-xs font-bold ${temperature > 21 ? 'bg-orange-100 text-orange-700' : (temperature < 20 ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700')}`}>
-                          {temperature > 21 ? 'تأثير الصيف (انخفاض الاستهلاك)' : (temperature < 20 ? 'تأثير الشتاء (زيادة الاستهلاك)' : 'منطقة الراحة الحرارية')}
-                        </span>
-                      </div>
-                      <div className="relative pt-1">
-                        <input 
-                          type="range" 
-                          min="10" 
-                          max="40" 
-                          step="1"
-                          value={temperature}
-                          onChange={(e) => setTemperature(parseInt(e.target.value))}
-                          className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-green-600"
-                        />
-                        <div className="flex justify-between text-[10px] font-bold text-gray-400 mt-2 px-1">
-                          <span>10°</span>
-                          <span>15°</span>
-                          <span className="text-green-600 font-black">20° م</span>
-                          <span>25°</span>
-                          <span>30°</span>
-                          <span>35°</span>
-                          <span>40°</span>
+                  <div className="space-y-8">
+                    {/* Temperature Slider */}
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                      <div className="flex-1 space-y-4 w-full">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                            <Settings className="w-4 h-4 text-gray-400" />
+                            محاكاة الظروف المناخية (درجة الحرارة)
+                          </h3>
+                          <span className={`px-3 py-1 rounded-lg text-xs font-bold ${temperature > 26 ? 'bg-orange-100 text-orange-700' : (temperature < 20 ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700')}`}>
+                            {temperature > 26 ? 'تأثير الصيف (انخفاض الاستهلاك)' : (temperature < 20 ? 'تأثير الشتاء (زيادة الاستهلاك)' : 'منطقة الراحة الحرارية')}
+                          </span>
+                        </div>
+                        <div className="relative pt-1">
+                          <input 
+                            type="range" 
+                            min="10" 
+                            max="45" 
+                            step="1"
+                            value={temperature}
+                            onChange={(e) => setTemperature(parseInt(e.target.value))}
+                            className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                          />
+                          <div className="flex justify-between text-[10px] font-bold text-gray-400 mt-2 px-1">
+                            <span>10°</span>
+                            <span>15°</span>
+                            <span className="text-green-600 font-black">22° م</span>
+                            <span>25°</span>
+                            <span>30°</span>
+                            <span>35°</span>
+                            <span>40°</span>
+                            <span>45°</span>
+                          </div>
                         </div>
                       </div>
+                      <div className="bg-white p-4 rounded-2xl border border-gray-100 flex items-center gap-4 shadow-sm shrink-0 w-full md:w-auto justify-between">
+                         <div className="text-center px-4">
+                           <p className="text-[10px] text-gray-400 mb-1">الحرارة</p>
+                           <p className="text-2xl font-bold">{temperature}°م</p>
+                         </div>
+                         <div className="w-px h-10 bg-gray-200"></div>
+                         <div className="text-center px-4">
+                           <p className="text-[10px] text-gray-400 mb-1">الاستهلاك اليومي</p>
+                           <p className="text-xl font-bold text-orange-600">
+                             {adjustedPerformanceData[selectedPerformanceDay]?.dailyIntake} غ
+                           </p>
+                         </div>
+                      </div>
                     </div>
-                    <div className="bg-white p-4 rounded-2xl border border-gray-100 flex items-center gap-4 shadow-sm shrink-0">
-                       <div className="text-center px-4">
-                         <p className="text-[10px] text-gray-400 mb-1">الحرارة</p>
-                         <p className="text-2xl font-bold">{temperature}°م</p>
-                       </div>
-                       <div className="w-px h-10 bg-gray-200"></div>
-                       <div className="text-center px-4">
-                         <p className="text-[10px] text-gray-400 mb-1">الاستهلاك اليومي</p>
-                         <p className="text-xl font-bold text-orange-600">
-                           {adjustedPerformanceData[selectedPerformanceDay]?.dailyIntake} غ
-                         </p>
-                       </div>
+
+                    {/* Humidity Slider */}
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-8 border-t border-gray-100 pt-8">
+                      <div className="flex-1 space-y-4 w-full">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-gray-400" />
+                            مؤشر الرطوبة النسبية (%)
+                          </h3>
+                          <span className={`px-3 py-1 rounded-lg text-xs font-bold ${humidity > 70 ? 'bg-red-100 text-red-700' : (humidity < 40 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700')}`}>
+                            {humidity > 70 ? 'رطوبة عالية (إجهاد إضافي)' : (humidity < 40 ? 'رطوبة منخفضة (جفاف)' : 'رطوبة مثالية')}
+                          </span>
+                        </div>
+                        <div className="relative pt-1">
+                          <input 
+                            type="range" 
+                            min="10" 
+                            max="95" 
+                            step="1"
+                            value={humidity}
+                            onChange={(e) => setHumidity(parseInt(e.target.value))}
+                            className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                          />
+                          <div className="flex justify-between text-[10px] font-bold text-gray-400 mt-2 px-1">
+                            <span>10%</span>
+                            <span>25%</span>
+                            <span>40%</span>
+                            <span className="text-green-600 font-black">55%</span>
+                            <span>70%</span>
+                            <span>85%</span>
+                            <span>95%</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-white p-4 rounded-2xl border border-gray-100 flex items-center gap-4 shadow-sm shrink-0 w-full md:w-auto justify-between">
+                         <div className="text-center px-4">
+                           <p className="text-[10px] text-gray-400 mb-1">الرطوبة</p>
+                           <p className="text-2xl font-bold">{humidity}%</p>
+                         </div>
+                         <div className="w-px h-10 bg-gray-200"></div>
+                         <div className="text-center px-4">
+                           <p className="text-[10px] text-gray-400 mb-1">مؤشر الحرارة (HI)</p>
+                           <p className={`text-xl font-bold ${heatIndex > 32 ? 'text-red-600' : 'text-blue-600'}`}>
+                             {heatIndex.toFixed(1)}
+                           </p>
+                         </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1831,6 +1908,8 @@ export default function App() {
             >
               <SummerStrategyTool 
                 currentTemp={temperature}
+                humidity={humidity}
+                heatIndex={heatIndex}
                 fiDropPercent={fiDropPercent}
                 heatFactor={currentHeatFactor}
               />

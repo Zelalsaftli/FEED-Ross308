@@ -16,16 +16,20 @@ import {
 
 interface SummerStrategyToolProps {
   currentTemp?: number;
+  humidity?: number;
+  heatIndex?: number;
   fiDropPercent?: number;
   heatFactor?: number;
 }
 
 const SummerStrategyTool: React.FC<SummerStrategyToolProps> = ({ 
   currentTemp = 32, 
+  humidity = 50,
+  heatIndex = 32,
   fiDropPercent = 12,
   heatFactor = 0.88
 }) => {
-  const isTriggered = currentTemp >= 30 || fiDropPercent >= 8 || heatFactor <= 0.92;
+  const isTriggered = heatIndex >= 30 || fiDropPercent >= 8 || heatFactor <= 0.92;
 
   const sections = [
     {
@@ -98,10 +102,10 @@ const SummerStrategyTool: React.FC<SummerStrategyToolProps> = ({
             </h3>
             <div className="space-y-3">
               {[
-                { label: "Temp ≥ 30°C (2 Days)", active: currentTemp >= 30 },
-                { label: "FI Drop ≥ 8%", active: fiDropPercent >= 8 },
-                { label: "DG Drop ≥ 12%", active: false },
-                { label: "HeatFactor ≤ 0.92", active: heatFactor <= 0.92 }
+                { label: `Temp ≥ 30°C (Current: ${currentTemp}°)`, active: currentTemp >= 30 },
+                { label: `Heat Index ≥ 30 (Current: ${heatIndex.toFixed(1)})`, active: heatIndex >= 30 },
+                { label: `FI Drop ≥ 8% (Current: ${fiDropPercent.toFixed(1)}%)`, active: fiDropPercent >= 8 },
+                { label: `HeatFactor ≤ 0.92 (Current: ${heatFactor.toFixed(2)})`, active: heatFactor <= 0.92 }
               ].map((t, idx) => (
                 <div key={idx} className={`p-3 rounded-xl border flex items-center justify-between ${t.active ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
                   <span className={`text-[11px] font-bold ${t.active ? 'text-red-700' : 'text-gray-500'}`}>{t.label}</span>

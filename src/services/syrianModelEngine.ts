@@ -9,6 +9,7 @@ export interface ModelSettings {
   sex: Sex;
   performanceFactor: number; // 0.90 - 1.00
   temperature: number;      // 0 - 45
+  humidity: number;         // 0 - 100
   heatCorrection: boolean;
   cornType: 'Syrian' | 'Ukrainian';
   soyType: 'Soy44' | 'Soy46';
@@ -57,11 +58,19 @@ const AA_RATIOS = {
 
 export class SyrianBroilerEngine {
   
+  // 0. Function: Heat Index Calculation (Poultry specific comfort index)
+  public static calculateHeatIndex(T: number, H: number): number {
+    if (T < 15) return T; // No moisture impact at low temp
+    return T + (H / 100) * (T - 14.5);
+  }
+
   // 1. Function: Heat-Corrected Feed Intake
-  private static get_FI_corr(FI_TN: number, Temperature_C: number, Heat_Correction_ON: boolean): number {
+  private static get_FI_corr(FI_TN: number, Temperature_C: number, Heat_Correction_ON: boolean, Humidity: number = 50): number {
     if (Heat_Correction_ON === false) return FI_TN;
-    if (Temperature_C < 30) return FI_TN;
-    return FI_TN * (1 - 0.015 * (Temperature_C - 23));
+    const hi = this.calculateHeatIndex(Temperature_C, Humidity);
+    if (hi < 29) return FI_TN;
+    // Feed intake drops by ~1.5% for every degree of HI above 23
+    return FI_TN * (1 - 0.015 * (hi - 23));
   }
 
   // 2. Function: Energy (EM%) Calculation
@@ -77,22 +86,24 @@ export class SyrianBroilerEngine {
       case 3: return 3050;
       case 4: return 3100;
       case 5: return 3150;
-      default: return 3050;
+      case 6: return 3180; // Extended for late finisher
+      default: return phase > 6 ? 3180 : 3050;
     }
   }
 
   // New: Function: Get EM Phase Target with Heat Adjustment
-  private static get_EM_PhaseTarget(phase: number, temp: number, heatCorr: boolean): number {
+  private static get_EM_PhaseTarget(phase: number, temp: number, heatCorr: boolean, humidity: number = 50): number {
     const base = this.get_EM_PhaseBaseTarget(phase);
-    if (heatCorr === true || temp >= 30) {
+    const hi = this.calculateHeatIndex(temp, humidity);
+    if (heatCorr === true || hi >= 30) {
       return base + 25;
     }
     return base;
   }
 
   // New: Function: Blend EM with FI Logic (Alpha = 0.4)
-  private static blend_EM_with_FI(phase: number, temp: number, heatCorr: boolean, EM_raw: number): number {
-    const target = this.get_EM_PhaseTarget(phase, temp, heatCorr);
+  private static blend_EM_with_FI(phase: number, temp: number, heatCorr: boolean, EM_raw: number, humidity: number = 50): number {
+    const target = this.get_EM_PhaseTarget(phase, temp, heatCorr, humidity);
     const alpha = 0.4;
     
     // Blend logic: EM_blended = EM_target + alpha * (EM_raw - EM_target)
@@ -134,18 +145,24 @@ export class SyrianBroilerEngine {
           dLys: 1.15, dMet: 0.49, dMC: 0.90, dThr: 0.76, dTrp: 0.21,
           dArg: 1.21, dGlySer: 1.55, dVal: 0.89, dIle: 0.78, dLeu: 1.23
         };
+      case 6:
+        return {
+          dLys: 1.11, dMet: 0.47, dMC: 0.86, dThr: 0.73, dTrp: 0.20,
+          dArg: 1.16, dGlySer: 1.49, dVal: 0.85, dIle: 0.75, dLeu: 1.18
+        };
       default:
         return {
-          dLys: 1.25, dMet: 0.53, dMC: 0.96, dThr: 0.83, dTrp: 0.23,
-          dArg: 1.34, dGlySer: 1.75, dVal: 0.96, dIle: 0.84, dLeu: 1.34
+          dLys: 1.11, dMet: 0.47, dMC: 0.86, dThr: 0.73, dTrp: 0.20,
+          dArg: 1.16, dGlySer: 1.49, dVal: 0.85, dIle: 0.75, dLeu: 1.18
         };
     }
   }
 
   // New: Function: Get AA Phase Targets with Heat Correction (+2%)
-  private static get_AA_PhaseTargets(phase: number, temp: number, heatCorr: boolean) {
+  private static get_AA_PhaseTargets(phase: number, temp: number, heatCorr: boolean, humidity: number = 50) {
     const base = this.get_AA_PhaseBaseTargets(phase);
-    const factor = (heatCorr === true || temp >= 30) ? 1.02 : 1.00;
+    const hi = this.calculateHeatIndex(temp, humidity);
+    const factor = (heatCorr === true || hi >= 30) ? 1.02 : 1.00;
 
     return {
       dLys: parseFloat((base.dLys * factor).toFixed(3)),
@@ -176,7 +193,7 @@ export class SyrianBroilerEngine {
   }
 
   // New: Function: Get Electrolyte Phase Targets with Heat Logic
-  private static get_Electrolytes_PhaseTargets(phase: number, temp: number, heatCorr: boolean) {
+  private static get_Electrolytes_PhaseTargets(phase: number, temp: number, heatCorr: boolean, humidity: number = 50) {
     // Base values (moderate conditions)
     const base: Record<number, { Na: number, K: number, Cl: number }> = {
       1: { Na: 0.20, K: 0.90, Cl: 0.20 },
@@ -192,7 +209,8 @@ export class SyrianBroilerEngine {
     let Cl = target.Cl;
 
     // Heat logic
-    if (heatCorr === true || temp >= 30) {
+    const hi = this.calculateHeatIndex(temp, humidity);
+    if (heatCorr === true || hi >= 30) {
       Na += 0.02; // raise sodium
       Cl -= 0.01; // reduce chloride slightly
     }
@@ -210,10 +228,11 @@ export class SyrianBroilerEngine {
   }
 
   // New: Function: Heat Stress Severity Level
-  private static get_HeatStressLevel(temp: number): 'None' | 'Mild' | 'Moderate' | 'Severe' {
-    if (temp < 28) return 'None';
-    if (temp < 30) return 'Mild';
-    if (temp < 33) return 'Moderate';
+  private static get_HeatStressLevel(temp: number, humidity: number = 50): 'None' | 'Mild' | 'Moderate' | 'Severe' {
+    const hi = this.calculateHeatIndex(temp, humidity);
+    if (hi < 29) return 'None';
+    if (hi < 32) return 'Mild';
+    if (hi < 36) return 'Moderate';
     return 'Severe';
   }
 
@@ -283,18 +302,86 @@ export class SyrianBroilerEngine {
   }
 
   // 12. MASTER FUNCTION: Get Nutrient Targets
-  public static calculateIntegratedRequirements(phase: number, DG: number, coeffs: { em: { a: number, b: number }, lys: { a: number, b: number } }) {
-    const em_target = coeffs.em.a + coeffs.em.b * (DG / 10.0);
-    const lys_target = coeffs.lys.a + coeffs.lys.b * DG;
+  public static calculateIntegratedRequirements(
+    phase: number, 
+    DG_heat: number, 
+    FI_daily: number,
+    coeffs: { em: { a: number, b: number }, lys: { a: number, b: number } },
+    humidity: number = 50
+  ) {
+    // 1. Get Base Requirements (Daily Grams/Kcal) for this phase
+    // Better mapping for Weekly (1-6) vs Brazilian Ref Phases (0-4)
+    const refIndex = Math.min(phase - 1, 4);
+    const ref = BRAZILIAN_REF.male[refIndex];
+    
+    // 2. Performance Factor split: Maintenance (BW) + Growth (DG)
+    const ref_dg = ref.fi_tn / 1.75; 
+    
+    // Age impact factor for maintenance overhead in older birds
+    const age_impact = phase >= 5 ? (1.0 + (phase - 4) * 0.02) : 1.0; 
+    const growth_factor = DG_heat / (ref_dg || 1);
+    
+    const em_daily = ref.em_kcal * (0.35 + 0.65 * growth_factor) * age_impact;
+    const lys_daily = ref.dLys_g * (0.25 + 0.75 * growth_factor) * age_impact;
+    
+    // 3. Convert to Dietary Density (kcal/kg and %)
+    let em_raw = (FI_daily > 0) ? (em_daily / FI_daily) * 1000 : 3100;
+    let lys_raw = (FI_daily > 0) ? (lys_daily / FI_daily) * 100 : 1.15;
 
-    // Phase-based minerals (Simplified as per user's integrated request)
-    const Ca_target = 0.90 + 0.02 * phase;
-    const AvP_target = 0.42 - 0.01 * phase;
+    // 4. Apply Syrian Safety Bands and Blending (Alpha = 0.4)
+    // Using current phase directly to allow trend in week 6
+    const em_final = this.blend_EM_with_FI(phase, 20, false, em_raw, humidity);
+    
+    // 5. Final SID Lys - Safety bounds relative to week-specific base
+    const lys_base = this.get_AA_PhaseBaseTargets(phase).dLys;
+    let final_lys = lys_raw;
+    
+    // Dynamic safety band that reflects age
+    const bandSize = phase >= 5 ? 0.06 : 0.08;
+    const min_lys = lys_base - bandSize; 
+    const max_lys = lys_base + bandSize;
+    if (final_lys < min_lys) final_lys = min_lys;
+    if (final_lys > max_lys) final_lys = max_lys;
+
+    // Use a proper decreasing lookup mapping 6 weeks to the 5 Syrian phases
+    let Ca_target = 0.78;
+    let AvP_target = 0.42;
+
+    switch (phase) {
+      case 1: 
+        Ca_target = 1.10; 
+        AvP_target = 0.55; 
+        break;
+      case 2: 
+        Ca_target = 0.98; 
+        AvP_target = 0.50; 
+        break;
+      case 3: 
+        Ca_target = 0.78; 
+        AvP_target = 0.42; 
+        break;
+      case 4: 
+        Ca_target = 0.74; // Adjusted for middle grower
+        AvP_target = 0.40; 
+        break;
+      case 5: 
+        Ca_target = 0.70; 
+        AvP_target = 0.38; 
+        break;
+      case 6: 
+        Ca_target = 0.65; 
+        AvP_target = 0.36; 
+        break;
+      default: 
+        Ca_target = 0.65; 
+        AvP_target = 0.36;
+    }
+
     const DEB_target = 250;
 
     return {
-      EM_target: em_target,
-      SID_Lys_target: lys_target,
+      EM_target: em_final,
+      SID_Lys_target: final_lys,
       Ca_target,
       AvP_target,
       Phase: phase,
@@ -313,11 +400,11 @@ export class SyrianBroilerEngine {
     const EM_req = ref.em_kcal * pf;
 
     // Master Sequence
-    const FI_corr = this.get_FI_corr(FI_TN, settings.temperature, settings.heatCorrection);
+    const FI_corr = this.get_FI_corr(FI_TN, settings.temperature, settings.heatCorrection, settings.humidity);
     let EM_raw = this.get_EM_percent(EM_req, FI_corr);
 
     // Apply Heat Stress Severities (Energy only)
-    const level = this.get_HeatStressLevel(settings.temperature);
+    const level = this.get_HeatStressLevel(settings.temperature, settings.humidity);
     let { em: emTarget } = this.apply_HeatStressAdjustments(EM_raw, 0, level);
 
     // Apply Corn Correction Attributes (Energy only)
@@ -325,14 +412,14 @@ export class SyrianBroilerEngine {
     emTarget = cornAdj.em;
 
     // Apply Energy Adjustment Layer (Blending + Phase Band)
-    emTarget = this.blend_EM_with_FI(phase, settings.temperature, settings.heatCorrection, emTarget);
+    emTarget = this.blend_EM_with_FI(phase, settings.temperature, settings.heatCorrection, emTarget, settings.humidity);
 
     // Amino Acid Target Layer
-    const AA_targets = this.get_AA_PhaseTargets(phase, settings.temperature, settings.heatCorrection);
+    const AA_targets = this.get_AA_PhaseTargets(phase, settings.temperature, settings.heatCorrection, settings.humidity);
     
     // Static Ca-P and Electrolyte Targets
     const CaP_targets = this.get_CaP_PhaseTargets(phase);
-    const Electro_targets = this.get_Electrolytes_PhaseTargets(phase, settings.temperature, settings.heatCorrection);
+    const Electro_targets = this.get_Electrolytes_PhaseTargets(phase, settings.temperature, settings.heatCorrection, settings.humidity);
 
     // Apply Corn Correction to Lysine specifically
     let sidLysFinal = AA_targets.dLys;

@@ -53,6 +53,15 @@ const GrowthEngineTool: React.FC<GrowthEngineToolProps> = ({ coeffs }) => {
     6: '38'
   });
 
+  const [weeklyHumidity, setWeeklyHumidity] = useState<Record<number, string>>({
+    1: '50',
+    2: '50',
+    3: '55',
+    4: '60',
+    5: '60',
+    6: '60'
+  });
+
   const [useManualData, setUseManualData] = useState(true);
 
   // Pre-load reference data
@@ -111,28 +120,33 @@ const GrowthEngineTool: React.FC<GrowthEngineToolProps> = ({ coeffs }) => {
   // Derived Metrics for Table
   const derivedMetrics = useMemo(() => {
     const metrics = [];
-    for (let w = 1; w <= 5; w++) {
+    const initialBW = 42; // Standard chick weight at Day 1
+    
+    for (let w = 1; w <= 6; w++) {
       const bwCurrent = parseFloat(weeklyBW[w]) || 0;
-      const bwNext = parseFloat(weeklyBW[w + 1]) || 0;
+      const bwPrev = w === 1 ? initialBW : (parseFloat(weeklyBW[w - 1]) || initialBW);
       const fi = parseFloat(weeklyFI[w]) || 0;
       
-      const wg = bwNext - bwCurrent;
+      const wg = bwCurrent - bwPrev;
       const dg_obs = wg / 7;
       const fcr = wg > 0 ? fi / wg : 0;
       
-      // Heat Stress Modifier
+      // Heat Stress Modifier (Using Heat Index)
       const temp = parseFloat(weeklyTemp[w]) || 24;
+      const humidity = parseFloat(weeklyHumidity[w]) || 50;
+      const hi = SyrianBroilerEngine.calculateHeatIndex(temp, humidity);
+      
       const t_onset = 28;
       const t_severe = 32;
       const mild_drop = 0.05;
       const severe_drop = 0.20;
       
       let heat_factor = 1.0;
-      if (temp > t_onset) {
-        if (temp >= t_severe) {
+      if (hi > t_onset) {
+        if (hi >= t_severe) {
           heat_factor = 1.0 - severe_drop;
         } else {
-          const frac = (temp - t_onset) / (t_severe - t_onset);
+          const frac = (hi - t_onset) / (t_severe - t_onset);
           const drop = mild_drop + frac * (severe_drop - mild_drop);
           heat_factor = 1.0 - drop;
         }
@@ -140,8 +154,9 @@ const GrowthEngineTool: React.FC<GrowthEngineToolProps> = ({ coeffs }) => {
       
       const dg_heat = dg_obs * heat_factor;
       
+      const daily_fi = fi / 7;
       // Use the Integrated Nutrition Engine Layer on heat-adjusted DG
-      const nutrition = SyrianBroilerEngine.calculateIntegratedRequirements(w, dg_heat, effectiveCoeffs);
+      const nutrition = SyrianBroilerEngine.calculateIntegratedRequirements(w, dg_heat, daily_fi, effectiveCoeffs, humidity);
 
       metrics.push({ 
         week: w, 
@@ -150,6 +165,8 @@ const GrowthEngineTool: React.FC<GrowthEngineToolProps> = ({ coeffs }) => {
         dg: dg_obs,
         dg_heat,
         temp,
+        humidity,
+        hi,
         heat_factor,
         fi, 
         fcr, 
@@ -160,7 +177,7 @@ const GrowthEngineTool: React.FC<GrowthEngineToolProps> = ({ coeffs }) => {
       });
     }
     return metrics;
-  }, [weeklyBW, weeklyFI]);
+  }, [weeklyBW, weeklyFI, weeklyTemp, effectiveCoeffs]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -225,20 +242,35 @@ const GrowthEngineTool: React.FC<GrowthEngineToolProps> = ({ coeffs }) => {
           <div className="space-y-4">
             <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
               <Settings2 className="w-4 h-4 text-red-600" />
-              درجات الحرارة الأسبوعية (°C)
+              الحرارة (°C) والرطوبة (%) الأسبوعية
             </h3>
-            <div className="grid grid-cols-3 gap-3">
-              {[1, 2, 3, 4, 5, 6].map(w => (
-                <div key={w} className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400">أسبوع {w}</label>
-                  <input 
-                    type="number"
-                    value={weeklyTemp[w]}
-                    onChange={(e) => setWeeklyTemp(prev => ({ ...prev, [w]: e.target.value }))}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-red-500 outline-none"
-                  />
-                </div>
-              ))}
+            <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3, 4, 5, 6].map(w => (
+                  <div key={w} className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400">حرارة و{w}</label>
+                    <input 
+                      type="number"
+                      value={weeklyTemp[w]}
+                      onChange={(e) => setWeeklyTemp(prev => ({ ...prev, [w]: e.target.value }))}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold focus:ring-2 focus:ring-red-500 outline-none"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3, 4, 5, 6].map(w => (
+                  <div key={w} className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400">رطوبة و{w}</label>
+                    <input 
+                      type="number"
+                      value={weeklyHumidity[w]}
+                      onChange={(e) => setWeeklyHumidity(prev => ({ ...prev, [w]: e.target.value }))}
+                      className="w-full bg-blue-50 border border-blue-200 rounded-lg px-2 py-1 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -349,7 +381,8 @@ const GrowthEngineTool: React.FC<GrowthEngineToolProps> = ({ coeffs }) => {
                     <th className="px-4 py-4">الوزن (BW)</th>
                     <th className="px-4 py-4 text-blue-600">الزيادة (WG)</th>
                     <th className="px-4 py-4 text-blue-800">اليومي (DG)</th>
-                    <th className="px-4 py-4 text-red-600">Temp</th>
+                    <th className="px-4 py-4 text-red-600">Temp/RH</th>
+                    <th className="px-4 py-4 text-blue-600">HI</th>
                     <th className="px-4 py-4 text-orange-600">Heat F.</th>
                     <th className="px-4 py-4 text-green-700">FCR</th>
                     <th className="px-4 py-4 bg-indigo-50 text-indigo-700">EM Req</th>
@@ -370,7 +403,13 @@ const GrowthEngineTool: React.FC<GrowthEngineToolProps> = ({ coeffs }) => {
                           <span className="text-[9px] text-red-500">H: {m.dg_heat.toFixed(1)}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-red-600">{m.temp}°</td>
+                      <td className="px-4 py-4 text-red-600">
+                        <div className="flex flex-col">
+                          <span>{m.temp}°</span>
+                          <span className="text-[9px] text-blue-400">{m.humidity}%</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-blue-600">{m.hi.toFixed(1)}</td>
                       <td className="px-4 py-4 text-orange-600">{m.heat_factor.toFixed(2)}</td>
                       <td className="px-4 py-4 text-green-600">{m.fcr.toFixed(3)}</td>
                       <td className="px-4 py-4 bg-indigo-50/20 text-indigo-600">{m.em_req.toFixed(3)}</td>
