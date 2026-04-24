@@ -26,7 +26,9 @@ import {
   RefreshCcw,
   Beaker,
   Database,
-  Sun
+  Sun,
+  FlaskConical,
+  Calculator as CalculatorIcon
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -54,8 +56,10 @@ import {
   ROSS_308_PERFORMANCE_DATA 
 } from './constants';
 
+import PhytaseCalculator from './components/PhytaseCalculator';
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives' | 'performance' | 'simulator' | 'regression' | 'summer'>('mixture');
+  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives' | 'performance' | 'simulator' | 'regression' | 'summer' | 'phytase'>('mixture');
   const [selectedPerformanceDay, setSelectedPerformanceDay] = useState<number>(0);
   const [temperature, setTemperature] = useState<number>(33);
   const [humidity, setHumidity] = useState<number>(55);
@@ -698,6 +702,13 @@ export default function App() {
             >
               <Database className="w-4 h-4" />
               تحليل الحقول
+            </button>
+            <button 
+              onClick={() => setActiveTab('phytase')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === 'phytase' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              <FlaskConical className="w-4 h-4" />
+              ماتريكس الفيتاز
             </button>
             <div className="w-px h-6 bg-gray-200 mx-1 hidden md:block"></div>
             <button 
@@ -1913,6 +1924,16 @@ export default function App() {
                 fiDropPercent={fiDropPercent}
                 heatFactor={currentHeatFactor}
               />
+            </motion.div>
+          )}
+
+          {activeTab === 'phytase' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <PhytaseCalculator />
             </motion.div>
           )}
 
