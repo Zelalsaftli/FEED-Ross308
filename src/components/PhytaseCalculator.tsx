@@ -17,9 +17,19 @@ import {
 import { PhytaseMatrixService, PhytaseInputs } from '../services/phytaseMatrixService';
 
 const PhytaseCalculator: React.FC = () => {
+  const PHASES = [
+    { id: 1, name: 'ما قبل البادئ (Pre-Starter)', target: 1800 },
+    { id: 2, name: 'بادئ (Starter)', target: 1700 },
+    { id: 3, name: 'نامي (Grower)', target: 1600 },
+    { id: 4, name: 'ناهي 1 (Finisher 1)', target: 1500 },
+    { id: 5, name: 'ناهي 2 (Finisher 2)', target: 1400 }
+  ];
+
+  const [selectedPhaseId, setSelectedPhaseId] = useState(3); // Default to Grower (1600)
+  
   const [inputs, setInputs] = useState<PhytaseInputs>({
-    product_concentration_fyt_per_g: 5000,
-    inclusion_rate_g_per_ton: 100,
+    product_concentration_fyt_per_g: 10000,
+    inclusion_rate_g_per_ton: 160,
     corrected_phytate_p: 0.28,
     calcium_percent: 0.90,
     available_phosphorus_percent: 0.45,
@@ -34,6 +44,30 @@ const PhytaseCalculator: React.FC = () => {
   const results = useMemo(() => {
     return PhytaseMatrixService.calculate(inputs);
   }, [inputs]);
+
+  const handlePhaseChange = (id: number) => {
+    setSelectedPhaseId(id);
+    const phase = PHASES.find(p => p.id === id);
+    if (phase) {
+      // Dose (g/ton) = (Requirement (FYT/kg) * 1000) / Product (FYT/g)
+      const newRate = (phase.target * 1000) / inputs.product_concentration_fyt_per_g;
+      setInputs(prev => ({ ...prev, inclusion_rate_g_per_ton: Math.round(newRate) }));
+    }
+  };
+
+  const handleConcentrationChange = (conc: number) => {
+    const phase = PHASES.find(p => p.id === selectedPhaseId);
+    if (phase && conc > 0) {
+      const newRate = (phase.target * 1000) / conc;
+      setInputs(prev => ({ 
+        ...prev, 
+        product_concentration_fyt_per_g: conc,
+        inclusion_rate_g_per_ton: Math.round(newRate)
+      }));
+    } else {
+      setInputs(prev => ({ ...prev, product_concentration_fyt_per_g: conc }));
+    }
+  };
 
   const handleInputChange = (key: keyof PhytaseInputs, value: any) => {
     setInputs(prev => ({ ...prev, [key]: value }));
@@ -95,26 +129,57 @@ const PhytaseCalculator: React.FC = () => {
             </h2>
 
             <div className="space-y-6">
-              {/* Phytase Dose Section */}
+              {/* Phase Selection Section */}
               <div className="space-y-4">
-                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full w-fit">جرعة الفيتاز</p>
+                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full w-fit">المرحلة والجرعة المستهدفة</p>
+                <div className="space-y-3">
+                   <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500">اختر المرحلة العمرية</label>
+                    <div className="grid grid-cols-1 gap-2">
+                       {PHASES.map(phase => (
+                         <button
+                           key={phase.id}
+                           onClick={() => handlePhaseChange(phase.id)}
+                           className={`flex items-center justify-between px-4 py-3 rounded-2xl border transition-all duration-300 ${
+                             selectedPhaseId === phase.id 
+                               ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100' 
+                               : 'bg-gray-50 border-gray-100 text-gray-600 hover:border-indigo-200'
+                           }`}
+                         >
+                           <span className="text-xs font-bold">{phase.name}</span>
+                           <span className={`text-[10px] font-black ${selectedPhaseId === phase.id ? 'text-indigo-200' : 'text-gray-400'}`}>
+                             {phase.target} FYT/kg
+                           </span>
+                         </button>
+                       ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Product Concentration Section */}
+              <div className="space-y-4 border-t border-gray-50 pt-6">
+                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full w-fit">تركيز المنتج والإضافة</p>
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-gray-500">تركيز المنتج (FYT/غ)</label>
                     <input 
                       type="number" 
                       value={inputs.product_concentration_fyt_per_g}
-                      onChange={(e) => handleInputChange('product_concentration_fyt_per_g', parseFloat(e.target.value))}
+                      onChange={(e) => handleConcentrationChange(parseFloat(e.target.value))}
                       className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-indigo-100 outline-none transition-all"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500">معدل الإضافة (غ/طن)</label>
+                  <div className="space-y-1.5 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                    <div className="flex justify-between items-center mb-1">
+                       <label className="text-xs font-bold text-indigo-700">معدل الإضافة (غ/طن علف)</label>
+                       <span className="text-[9px] font-black text-indigo-400 px-2 py-0.5 bg-white rounded-full">محسوب آلياً</span>
+                    </div>
                     <input 
                       type="number" 
                       value={inputs.inclusion_rate_g_per_ton}
                       onChange={(e) => handleInputChange('inclusion_rate_g_per_ton', parseFloat(e.target.value))}
-                      className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-indigo-100 outline-none transition-all"
+                      className="w-full bg-white border border-indigo-200 rounded-xl px-4 py-3 text-lg font-black text-indigo-600 focus:ring-4 focus:ring-indigo-100 outline-none transition-all"
                     />
                   </div>
                 </div>
