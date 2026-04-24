@@ -277,27 +277,40 @@ const PhytaseCalculator: React.FC = () => {
                     <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase">الوحدة</th>
                     <th className="px-6 py-4 text-xs font-black text-gray-600 uppercase text-center bg-indigo-50/30">الماتريكس المعدل</th>
                     <th className="px-6 py-4 text-xs font-black text-orange-600 uppercase text-center bg-orange-50/30">الصيف (70%)</th>
+                    <th className="px-6 py-4 text-xs font-black text-emerald-600 uppercase text-center bg-emerald-50/30">تحرير/1كغ أنزيم</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {Object.entries(nutrientLabels).map(([key, info]) => (
-                    <tr key={key} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <span className={`text-sm font-bold ${info.color}`}>{info.label}</span>
-                      </td>
-                      <td className="px-6 py-4 text-xs font-bold text-gray-400">{info.unit}</td>
-                      <td className="px-6 py-4 text-center bg-indigo-50/10">
-                        <span className="text-sm font-black text-indigo-900">
-                          {results.matrix_raw[key]?.toFixed(3)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center bg-orange-50/10">
-                        <span className="text-sm font-black text-orange-700">
-                          {results.matrix_summer_mode[key]?.toFixed(3)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {Object.entries(nutrientLabels).map(([key, info]) => {
+                    const summerValue = results.matrix_summer_mode[key] || 0;
+                    const releasePerKg = key === 'ME' 
+                      ? null 
+                      : (summerValue * 100) / (inputs.inclusion_rate_g_per_ton / 10000);
+
+                    return (
+                      <tr key={key} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <span className={`text-sm font-bold ${info.color}`}>{info.label}</span>
+                        </td>
+                        <td className="px-6 py-4 text-xs font-bold text-gray-400">{info.unit}</td>
+                        <td className="px-6 py-4 text-center bg-indigo-50/10">
+                          <span className="text-sm font-black text-indigo-900">
+                            {results.matrix_raw[key]?.toFixed(3)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center bg-orange-50/10">
+                          <span className="text-sm font-black text-orange-700">
+                            {summerValue.toFixed(3)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center bg-emerald-50/10">
+                          <span className="text-sm font-black text-emerald-700">
+                            {releasePerKg !== null ? releasePerKg.toFixed(2) : '—'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
