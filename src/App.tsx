@@ -28,6 +28,7 @@ import {
   Database,
   Sun,
   FlaskConical,
+  Wind,
   Calculator as CalculatorIcon
 } from 'lucide-react';
 import { 
@@ -517,6 +518,16 @@ export default function App() {
         item.id === id ? { ...item, nutrition: { ...INITIAL_NUTRITION }, price: 0 } : item
       ));
     }
+  };
+
+  const zeroEnzymeMatrix = () => {
+    if (!window.confirm("هل تريد تصفير قيم المصفوفة الغذائية (Matrix) لجميع الإنزيمات؟")) return;
+    setIngredients(prev => prev.map(ing => {
+      if (ing.name.includes('أنزيم') || ing.name.toLowerCase().includes('enzyme') || ing.name.includes('Natuzyme')) {
+        return { ...ing, nutrition: { ...INITIAL_NUTRITION } };
+      }
+      return ing;
+    }));
   };
 
   const saveSnapshot = () => {
@@ -1206,9 +1217,18 @@ export default function App() {
               className="grid grid-cols-1 md:grid-cols-3 gap-8"
             >
               <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden h-[calc(100vh-12rem)] sticky top-24">
-                <div className="p-4 bg-gray-50 border-b border-gray-200 font-bold flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  قائمة المكونات
+                <div className="p-4 bg-gray-50 border-b border-gray-200 font-bold flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs">
+                    <Settings className="w-4 h-4 text-gray-500" />
+                    قائمة المكونات
+                  </div>
+                  <button 
+                    onClick={zeroEnzymeMatrix}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-[10px] font-black border border-amber-200 hover:bg-amber-100 transition-all uppercase tracking-tighter"
+                  >
+                    <Wind className="w-3 h-3" />
+                    تصفير الأنزيمات
+                  </button>
                 </div>
                 <div className="overflow-y-auto h-full pb-20">
                   {ingredients.map((ing) => (
