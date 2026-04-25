@@ -122,7 +122,7 @@ export const DCP_STANDARDS: Record<string, Partial<Nutrition>> = {
 
 export const ENZYME_STANDARDS: Record<string, Partial<Nutrition>> = {
   "phytase": {
-    ME: 50000, Ca: 100, avP: 150, Na: 30, dLys: 40, dMet: 10, dThr: 30
+    ME: 476000, CP: 1570, avP: 900, Ca: 1144, Na: 80, dLys: 69, dMetCys: 41, dThr: 41, dArg: 66, dVal: 70, dIso: 67, dLeu: 85, dGlySer: 120
   },
   "multi": {
     ME: 80000, CP: 150, dLys: 50, dMet: 15, dThr: 40, dVal: 30
