@@ -12,11 +12,16 @@ import {
   Beaker,
   ShieldAlert,
   Flame,
-  Wind
+  Wind,
+  Zap
 } from 'lucide-react';
 import { PhytaseMatrixService, PhytaseInputs } from '../services/phytaseMatrixService';
 
-const PhytaseCalculator: React.FC = () => {
+interface PhytaseCalculatorProps {
+  onCopyResults?: (nutrition: any) => void;
+}
+
+const PhytaseCalculator: React.FC<PhytaseCalculatorProps> = ({ onCopyResults }) => {
   const PHASES = [
     { id: 1, name: 'ما قبل البادئ (Pre-Starter)', target: 1800 },
     { id: 2, name: 'بادئ (Starter)', target: 1700 },
@@ -253,6 +258,46 @@ const PhytaseCalculator: React.FC = () => {
                 تحليل الماتريكس الصافي
               </h2>
               <div className="flex flex-wrap gap-2">
+                {onCopyResults && (
+                  <button
+                    onClick={() => {
+                      const matrixToCopy: any = {};
+                      Object.entries(nutrientLabels).forEach(([key]) => {
+                        const summerValue = results.matrix_summer_mode[key] || 0;
+                        let releaseValue = 0;
+                        if (key === 'ME') {
+                          releaseValue = summerValue * 10000;
+                        } else {
+                          releaseValue = (summerValue * 100) / (inputs.inclusion_rate_g_per_ton / 10000);
+                        }
+                        
+                        // Mapping to nutrition object keys
+                        const mapping: Record<string, string> = {
+                          'AvP': 'avP',
+                          'Ca': 'Ca',
+                          'Na': 'Na',
+                          'Protein': 'CP',
+                          'Lys': 'dLys',
+                          'Thr': 'dThr',
+                          'Arg': 'dArg',
+                          'Val': 'dVal',
+                          'Iso': 'dIso',
+                          'Leu': 'dLeu',
+                          'ME': 'ME'
+                        };
+                        
+                        if (mapping[key]) {
+                          matrixToCopy[mapping[key]] = parseFloat(releaseValue.toFixed(2));
+                        }
+                      });
+                      onCopyResults(matrixToCopy);
+                    }}
+                    className="flex items-center gap-2 px-4 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 ml-4 h-fit"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    تحديث مصفوفة الأنزيم بالخلطة
+                  </button>
+                )}
                 <div className="bg-indigo-50 px-3 py-1.5 rounded-xl flex flex-col items-center">
                   <span className="text-[9px] font-black text-indigo-400 uppercase">Dose Factor</span>
                   <span className="text-sm font-black text-indigo-700">{results.dose_factor.toFixed(2)}</span>
@@ -284,7 +329,7 @@ const PhytaseCalculator: React.FC = () => {
                   {Object.entries(nutrientLabels).map(([key, info]) => {
                     const summerValue = results.matrix_summer_mode[key] || 0;
                     const releasePerKg = key === 'ME' 
-                      ? null 
+                      ? summerValue * 10000 
                       : (summerValue * 100) / (inputs.inclusion_rate_g_per_ton / 10000);
 
                     return (

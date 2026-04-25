@@ -2590,7 +2590,14 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
             >
-              <PhytaseCalculator />
+              <PhytaseCalculator onCopyResults={(newMatrix) => {
+                setIngredients(prev => prev.map(ing => {
+                  if (ing.name.includes("فيتاز") || ing.name.includes("Hiphos")) {
+                    return { ...ing, nutrition: { ...ing.nutrition, ...newMatrix } };
+                  }
+                  return ing;
+                }));
+              }} />
             </motion.div>
           )}
 

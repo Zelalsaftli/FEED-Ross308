@@ -234,13 +234,13 @@ export const DEFAULT_INGREDIENTS: Ingredient[] = DEFAULT_INGREDIENTS_LIST.map((n
     Object.assign(nutrition, ENZYME_STANDARDS["phytase"]);
     price = 25.0;
   } else if (name.includes("بروتياز")) {
-    nutrition.CP = 50; nutrition.dLys = 20; nutrition.dThr = 15;
+    // Zeroed as requested, user can modify
     price = 7.0;
   } else if (name.includes("ألياف") || name.includes("Rovabio")) {
-    nutrition.ME = 40000;
+    // Zeroed as requested, user can modify
     price = 15.0;
   } else if (name.includes("الأنزيم المتعدد") || name.includes("Natuzyme")) {
-    Object.assign(nutrition, ENZYME_STANDARDS["multi"]);
+    // Zeroed as requested, user can modify
     price = 20.0;
   } else if (name.includes("مستحلب")) {
     nutrition.ME = 30000;
