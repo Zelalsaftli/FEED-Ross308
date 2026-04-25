@@ -13,6 +13,7 @@ export interface ModelSettings {
   heatCorrection: boolean;
   cornType: 'Syrian' | 'Ukrainian';
   soyType: 'Soy44' | 'Soy46';
+  totalPhases?: number;
 }
 
 export interface ModelOutput {
@@ -118,56 +119,76 @@ export class SyrianBroilerEngine {
   }
 
   // New: Function: Get AA Phase Base Targets (Brazilian style table)
-  private static get_AA_PhaseBaseTargets(phase: number) {
+  private static get_AA_PhaseBaseTargets(phase: number, totalPhases: number = 5) {
+    // Exact user specifications for dMetCys
+    let dMetCys = 0.90;
+    let dMet = 0.50; 
+
+    if (totalPhases === 3) {
+      if (phase === 1) dMetCys = 1.00;
+      else if (phase === 2) dMetCys = 0.92;
+      else dMetCys = 0.86;
+    } else if (totalPhases === 4) {
+      if (phase === 1) dMetCys = 1.00;
+      else if (phase === 2) dMetCys = 0.92;
+      else if (phase === 3) dMetCys = 0.86;
+      else dMetCys = 0.82;
+    } else { // 5 phases (default)
+      if (phase === 1) dMetCys = 1.00;
+      else if (phase === 2) dMetCys = 0.96;
+      else if (phase === 3) dMetCys = 0.94;
+      else if (phase === 4) dMetCys = 0.90;
+      else dMetCys = 0.88;
+    }
+
+    // Set dMet as approx 55-60% of dMetCys if not provided specifically
+    dMet = parseFloat((dMetCys * 0.55).toFixed(3));
+
     switch (phase) {
       case 1:
         return {
-          dLys: 1.34, dMet: 0.54, dMC: 0.98, dThr: 0.88, dTrp: 0.24,
+          dLys: 1.34, dMet, dMetCys, dThr: 0.88, dTrp: 0.24,
           dArg: 1.45, dGlySer: 1.97, dVal: 1.03, dIle: 0.90, dLeu: 1.43
         };
       case 2:
         return {
-          dLys: 1.30, dMet: 0.52, dMC: 0.95, dThr: 0.86, dTrp: 0.23,
+          dLys: 1.30, dMet, dMetCys, dThr: 0.86, dTrp: 0.23,
           dArg: 1.40, dGlySer: 1.91, dVal: 1.00, dIle: 0.87, dLeu: 1.39
         };
       case 3:
         return {
-          dLys: 1.25, dMet: 0.53, dMC: 0.96, dThr: 0.83, dTrp: 0.23,
+          dLys: 1.25, dMet, dMetCys, dThr: 0.83, dTrp: 0.23,
           dArg: 1.34, dGlySer: 1.75, dVal: 0.96, dIle: 0.84, dLeu: 1.34
         };
       case 4:
         return {
-          dLys: 1.20, dMet: 0.50, dMC: 0.92, dThr: 0.79, dTrp: 0.22,
+          dLys: 1.20, dMet, dMetCys, dThr: 0.79, dTrp: 0.22,
           dArg: 1.28, dGlySer: 1.68, dVal: 0.92, dIle: 0.80, dLeu: 1.28
         };
       case 5:
         return {
-          dLys: 1.15, dMet: 0.49, dMC: 0.90, dThr: 0.76, dTrp: 0.21,
+          dLys: 1.15, dMet, dMetCys, dThr: 0.76, dTrp: 0.21,
           dArg: 1.21, dGlySer: 1.55, dVal: 0.89, dIle: 0.78, dLeu: 1.23
-        };
-      case 6:
-        return {
-          dLys: 1.11, dMet: 0.47, dMC: 0.86, dThr: 0.73, dTrp: 0.20,
-          dArg: 1.16, dGlySer: 1.49, dVal: 0.85, dIle: 0.75, dLeu: 1.18
         };
       default:
         return {
-          dLys: 1.11, dMet: 0.47, dMC: 0.86, dThr: 0.73, dTrp: 0.20,
+          dLys: 1.11, dMet, dMetCys, dThr: 0.73, dTrp: 0.20,
           dArg: 1.16, dGlySer: 1.49, dVal: 0.85, dIle: 0.75, dLeu: 1.18
         };
     }
   }
 
   // New: Function: Get AA Phase Targets with Heat Correction (+2%)
-  private static get_AA_PhaseTargets(phase: number, temp: number, heatCorr: boolean, humidity: number = 50) {
-    const base = this.get_AA_PhaseBaseTargets(phase);
+  private static get_AA_PhaseTargets(phase: number, temp: number, heatCorr: boolean, humidity: number = 50, totalPhases: number = 5) {
+    const base = this.get_AA_PhaseBaseTargets(phase, totalPhases);
     const hi = this.calculateHeatIndex(temp, humidity);
     const factor = (heatCorr === true || hi >= 30) ? 1.02 : 1.00;
 
     return {
       dLys: parseFloat((base.dLys * factor).toFixed(3)),
       dMet: parseFloat((base.dMet * factor).toFixed(3)),
-      dMC: parseFloat((base.dMC * factor).toFixed(3)),
+      dCys: parseFloat(((base.dMetCys - base.dMet) * factor).toFixed(3)),
+      dMetCys: parseFloat((base.dMetCys * factor).toFixed(3)),
       dThr: parseFloat((base.dThr * factor).toFixed(3)),
       dTrp: parseFloat((base.dTrp * factor).toFixed(3)),
       dArg: parseFloat((base.dArg * factor).toFixed(3)),
@@ -281,6 +302,7 @@ export class SyrianBroilerEngine {
   private static get_AA_profile(SID_Lys_percent: number): Partial<Nutrition> {
     return {
       dMet: parseFloat((SID_Lys_percent * AA_RATIOS.dMet).toFixed(3)),
+      dCys: parseFloat((SID_Lys_percent * (AA_RATIOS.dMetCys - AA_RATIOS.dMet)).toFixed(3)),
       dMetCys: parseFloat((SID_Lys_percent * AA_RATIOS.dMetCys).toFixed(3)),
       dThr: parseFloat((SID_Lys_percent * AA_RATIOS.dThr).toFixed(3)),
       dVal: parseFloat((SID_Lys_percent * AA_RATIOS.dVal).toFixed(3)),
@@ -415,7 +437,7 @@ export class SyrianBroilerEngine {
     emTarget = this.blend_EM_with_FI(phase, settings.temperature, settings.heatCorrection, emTarget, settings.humidity);
 
     // Amino Acid Target Layer
-    const AA_targets = this.get_AA_PhaseTargets(phase, settings.temperature, settings.heatCorrection, settings.humidity);
+    const AA_targets = this.get_AA_PhaseTargets(phase, settings.temperature, settings.heatCorrection, settings.humidity, settings.totalPhases || 5);
     
     // Static Ca-P and Electrolyte Targets
     const CaP_targets = this.get_CaP_PhaseTargets(phase);
@@ -435,7 +457,8 @@ export class SyrianBroilerEngine {
       ME: Math.round(emTarget),
       dLys: parseFloat(sidLysFinal.toFixed(3)),
       dMet: AA_targets.dMet,
-      dMetCys: AA_targets.dMC,
+      dCys: AA_targets.dCys,
+      dMetCys: AA_targets.dMetCys,
       dThr: AA_targets.dThr,
       dVal: AA_targets.dVal,
       dIso: AA_targets.dIle,

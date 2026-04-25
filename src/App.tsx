@@ -290,8 +290,9 @@ export default function App() {
     }
 
     adjusted.dLys = finalLys.toFixed(3);
-    adjusted.dThr = (parseFloat(baseRequirement.dThr) * thrFactor).toFixed(3);
-    adjusted.dMet = (parseFloat(baseRequirement.dMet) * metFactor).toFixed(3);
+    adjusted.dThr = (parseFloat(baseRequirement.dThr || "0") * thrFactor).toFixed(3);
+    adjusted.dMet = (parseFloat(baseRequirement.dMet || "0") * metFactor).toFixed(3);
+    adjusted.dMetCys = (parseFloat(baseRequirement.dMetCys || "0") * metFactor).toFixed(3);
     
     // Minerals Strategy
     adjusted.Ca = (parseFloat(baseRequirement.Ca) - 0.05).toFixed(3);
@@ -320,12 +321,37 @@ export default function App() {
       const percentage = parseFloat(entry.percentage) || 0;
       if (ing && percentage > 0) {
         const ratio = percentage / 100;
+        
+        // Comprehensive nutrition object for this ingredient
+        const ingNut = { ...ing.nutrition };
+        
+        // CRITICAL: Calculate/Ensure dMet and dMetCys for this specific ingredient entry
+        const m = parseFloat(ingNut.dMet) || 0;
+        const c = parseFloat(ingNut.dCys) || 0;
+        const mc = parseFloat(ingNut.dMetCys) || 0;
+        
+        // Use the higher value to avoid data gaps
+        const effectiveMC = Math.max(mc, (m + c));
+        const effectiveM = m > 0 ? m : (mc > 0 ? mc * 0.55 : 0);
+
         Object.keys(result).forEach(key => {
           const k = key as keyof Nutrition;
-          (result[k] as number) += (parseFloat(ing.nutrition[k]) || 0) * ratio;
+          if (k === 'dMetCys') {
+              (result[k] as number) += effectiveMC * ratio;
+          } else if (k === 'dMet') {
+              (result[k] as number) += effectiveM * ratio;
+          } else {
+              (result[k] as number) += (parseFloat(ingNut[k]) || 0) * ratio;
+          }
         });
       }
     });
+
+    // Final safety cross-check: dMetCys must be >= dMet
+    if (result.dMetCys < result.dMet) {
+      result.dMetCys = result.dMet;
+    }
+    
     return result;
   }, [mixture, ingredients]);
 
@@ -462,9 +488,18 @@ export default function App() {
   };
 
   const updateIngredientNutrition = (id: string, field: keyof Nutrition, value: string) => {
-    setIngredients(prev => prev.map(item => 
-      item.id === id ? { ...item, nutrition: { ...item.nutrition, [field]: value } } : item
-    ));
+    setIngredients(prev => prev.map(item => {
+      if (item.id === id) {
+        const newNutrition = { ...item.nutrition, [field]: value };
+        // Auto-sync for synthetic methionine
+        if (item.name.includes("ميثيونين") || item.name.includes("Methionine")) {
+          if (field === 'dMet') newNutrition.dMet = value;
+          if (field === 'dMetCys') newNutrition.dMetCys = value;
+        }
+        return { ...item, nutrition: newNutrition };
+      }
+      return item;
+    }));
   };
 
   const updateRequirementValue = (key: keyof Nutrition, value: string) => {
@@ -509,9 +544,10 @@ export default function App() {
 
     const updatePhaseSet = (phases: PhaseRequirement[]) => {
       return phases.map((p, idx) => {
-        // Map phase index to core phase 1-5 logic
-        const logicPhase = Math.min(5, Math.ceil(((idx + 1) / phases.length) * 5));
-        const output = SyrianBroilerEngine.calculatePhase(logicPhase, settings);
+        const output = SyrianBroilerEngine.calculatePhase(idx + 1, { 
+          ...settings, 
+          totalPhases: phases.length 
+        });
         return {
           ...p,
           nutrition: output.nutrition
@@ -671,7 +707,6 @@ export default function App() {
     { key: 'Na', label: 'Na' },
     { key: 'Cl', label: 'Cl' },
     { key: 'dLys', label: 'Lys' },
-    { key: 'dMet', label: 'Met' },
     { key: 'dMetCys', label: 'Met+Cys' },
     { key: 'dThr', label: 'Thr' },
     { key: 'K', label: 'Potassium (K %)' },
@@ -1156,7 +1191,7 @@ export default function App() {
                             { k: 'Ca', l: 'كالسيوم (%)' },
                             { k: 'avP', l: 'فوسفور (%)' },
                             { k: 'dLys', l: 'لايسين (%)' },
-                            { k: 'dMet', l: 'ميثيونين (%)' }
+                            { k: 'dMetCys', l: 'ميثيونين + سيستين (%)' }
                           ].map(({ k, l }) => {
                             const val1 = snapshots.find(s => s.id === compareIds[0])?.actualNutrition[k as keyof Nutrition] || 0;
                             const val2 = snapshots.find(s => s.id === compareIds[1])?.actualNutrition[k as keyof Nutrition] || 0;
@@ -2079,13 +2114,16 @@ export default function App() {
 
               {/* Amino Acids Table */}
               <section className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-8 py-6 bg-gray-50 border-b border-gray-200">
+                <div className="px-8 py-6 bg-gray-50 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
                    <div className="flex items-center gap-3">
                      <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
                         <CheckCircle2 className="w-5 h-5" />
                      </div>
                      <h2 className="text-xl font-bold">جدول الأحماض الأمينية المهضومة (%)</h2>
                    </div>
+                   <span className="text-[10px] bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full font-bold border border-indigo-100 italic">
+                     * الاحتياجات مسحوبة من مصفوفة FIVITAZ للمرحلة الحالية
+                   </span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -2101,7 +2139,6 @@ export default function App() {
                     <tbody className="divide-y divide-gray-50">
                       {[
                         { k: 'dLys', l: 'لايسين (dLys)' },
-                        { k: 'dMet', l: 'الميثيونين (dMet)' },
                         { k: 'dMetCys', l: 'الميثيونين + السيستين (dM+C)' },
                         { k: 'dThr', l: 'ثريونين (dThr)' },
                         { k: 'dVal', l: 'فالين (dVal)' },
@@ -2981,7 +3018,7 @@ export default function App() {
                 { k: 'Na', l: 'صوديوم (Na)', u: '%' },
                 { k: 'Cl', l: 'كلور (Cl)', u: '%' },
                 { k: 'dLys', l: 'لايسين (dLys)', u: '%' },
-                { k: 'dMet', l: 'ميثيونين (dMet)', u: '%' },
+                { k: 'dMetCys', l: 'الميثيونين + السيستين (dMetCys)', u: '%' },
                 { k: 'dThr', l: 'ثريونين (dThr)', u: '%' },
                 { k: 'dVal', l: 'فالين (dVal)', u: '%' },
                 { k: 'choline', l: 'الكولين (Choline)', u: 'mg' },

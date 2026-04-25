@@ -65,10 +65,10 @@ export const LIMESTONE_STANDARDS: Record<string, Partial<Nutrition>> = {
 
 export const METHIONINE_STANDARDS: Record<string, Partial<Nutrition>> = {
   "european": {
-    ME: 4858, CP: 59, dMet: 98
+    ME: 4858, CP: 59, dMet: 98, dMetCys: 98
   },
   "chinese": {
-    ME: 4660, CP: 57, dMet: 94
+    ME: 4660, CP: 57, dMet: 94, dMetCys: 94
   }
 };
 
@@ -158,7 +158,8 @@ export const DEFAULT_INGREDIENTS_LIST: string[] = [
   "سلفات الصوديوم",
   "بيكربونات الصوديوم",
   "اللايسين (78%)",
-  "الميثيونين الصناعي",
+  "ميثيونين (أوروبي)",
+  "ميثيونين (صيني)",
   "الثريونين (L-Threonine)",
   "الفالين",
   "إيزوليوسين",
@@ -209,8 +210,12 @@ export const DEFAULT_INGREDIENTS: Ingredient[] = DEFAULT_INGREDIENTS_LIST.map((n
     price = 0.05;
   } else if (name.includes("اللايسين")) {
     nutrition.dLys = 74.2; nutrition.ME = 3607; nutrition.CP = 94; nutrition.Cl = 19.4; price = 2.1;
+  } else if (name.includes("ميثيونين (أوروبي)")) {
+    nutrition.dMet = 98; nutrition.dMetCys = 98; nutrition.ME = 4858; nutrition.CP = 59; price = 3.6;
+  } else if (name.includes("ميثيونين (صيني)")) {
+    nutrition.dMet = 94; nutrition.dMetCys = 94; nutrition.ME = 4660; nutrition.CP = 57; price = 3.2;
   } else if (name.includes("الميثيونين")) {
-    nutrition.dMet = 98; nutrition.ME = 4858; nutrition.CP = 59; price = 3.6;
+    nutrition.dMet = 98; nutrition.dMetCys = 98; nutrition.ME = 4858; nutrition.CP = 59; price = 3.6;
   } else if (name.includes("الثريونين")) {
     nutrition.dThr = 98; nutrition.ME = 3067; nutrition.CP = 78; price = 2.7;
   } else if (name.includes("الفالين")) {
@@ -296,7 +301,7 @@ export const ROSS_308_PHASES_3: PhaseRequirement[] = [
     days: "0–10 d",
     nutrition: {
       ME: 2975, CP: 23.0, Ca: 0.95, avP: 0.50, Na: 0.20, Cl: 0.20,
-      dLys: 1.32, dMet: 1.00, dThr: 0.88, dVal: 1.00, dIso: 0.88, dArg: 1.40,
+      dLys: 1.32, dMet: 0.55, dMetCys: 1.00, dThr: 0.88, dVal: 1.00, dIso: 0.88, dArg: 1.40,
       dTry: 0.21, dLeu: 1.45, choline: 1700, K: 0.85, dGlySer: 0, dPhe: 0, dPheTyr: 0
     }
   },
@@ -305,7 +310,7 @@ export const ROSS_308_PHASES_3: PhaseRequirement[] = [
     days: "11–24 d",
     nutrition: {
       ME: 3050, CP: 21.5, Ca: 0.75, avP: 0.42, Na: 0.20, Cl: 0.20,
-      dLys: 1.18, dMet: 0.92, dThr: 0.79, dVal: 0.91, dIso: 0.80, dArg: 1.27,
+      dLys: 1.18, dMet: 0.51, dMetCys: 0.92, dThr: 0.79, dVal: 0.91, dIso: 0.80, dArg: 1.27,
       dTry: 0.19, dLeu: 1.30, choline: 1600, K: 0.80, dGlySer: 0, dPhe: 0, dPheTyr: 0
     }
   },
@@ -314,7 +319,7 @@ export const ROSS_308_PHASES_3: PhaseRequirement[] = [
     days: "25–market",
     nutrition: {
       ME: 3100, CP: 19.5, Ca: 0.65, avP: 0.36, Na: 0.20, Cl: 0.20,
-      dLys: 1.08, dMet: 0.86, dThr: 0.72, dVal: 0.84, dIso: 0.75, dArg: 1.17,
+      dLys: 1.08, dMet: 0.47, dMetCys: 0.86, dThr: 0.72, dVal: 0.84, dIso: 0.75, dArg: 1.17,
       dTry: 0.17, dLeu: 1.19, choline: 1500, K: 0.75, dGlySer: 0, dPhe: 0, dPheTyr: 0
     }
   }
@@ -326,7 +331,7 @@ export const ROSS_308_PHASES_4: PhaseRequirement[] = [
     days: "0–10 d",
     nutrition: {
       ME: 2975, CP: 23.0, Ca: 0.95, avP: 0.50, Na: 0.20, Cl: 0.20,
-      dLys: 1.32, dMet: 1.00, dThr: 0.88, dVal: 1.00, dIso: 0.88, dArg: 1.40,
+      dLys: 1.32, dMet: 0.55, dMetCys: 1.00, dThr: 0.88, dVal: 1.00, dIso: 0.88, dArg: 1.40,
       dTry: 0.21, dLeu: 1.45, choline: 1700, K: 0.85, dGlySer: 0, dPhe: 0, dPheTyr: 0
     }
   },
@@ -335,7 +340,7 @@ export const ROSS_308_PHASES_4: PhaseRequirement[] = [
     days: "11–24 d",
     nutrition: {
       ME: 3050, CP: 21.5, Ca: 0.75, avP: 0.42, Na: 0.20, Cl: 0.20,
-      dLys: 1.18, dMet: 0.92, dThr: 0.79, dVal: 0.91, dIso: 0.80, dArg: 1.27,
+      dLys: 1.18, dMet: 0.51, dMetCys: 0.92, dThr: 0.79, dVal: 0.91, dIso: 0.80, dArg: 1.27,
       dTry: 0.19, dLeu: 1.30, choline: 1600, K: 0.80, dGlySer: 0, dPhe: 0, dPheTyr: 0
     }
   },
@@ -344,7 +349,7 @@ export const ROSS_308_PHASES_4: PhaseRequirement[] = [
     days: "25–39 d",
     nutrition: {
       ME: 3100, CP: 19.5, Ca: 0.65, avP: 0.36, Na: 0.20, Cl: 0.20,
-      dLys: 1.08, dMet: 0.86, dThr: 0.72, dVal: 0.84, dIso: 0.75, dArg: 1.17,
+      dLys: 1.08, dMet: 0.47, dMetCys: 0.86, dThr: 0.72, dVal: 0.84, dIso: 0.75, dArg: 1.17,
       dTry: 0.17, dLeu: 1.19, choline: 1500, K: 0.75, dGlySer: 0, dPhe: 0, dPheTyr: 0
     }
   },
@@ -353,7 +358,7 @@ export const ROSS_308_PHASES_4: PhaseRequirement[] = [
     days: "40–market",
     nutrition: {
       ME: 3125, CP: 18.0, Ca: 0.60, avP: 0.34, Na: 0.20, Cl: 0.20,
-      dLys: 1.02, dMet: 0.82, dThr: 0.68, dVal: 0.80, dIso: 0.70, dArg: 1.12,
+      dLys: 1.02, dMet: 0.45, dMetCys: 0.82, dThr: 0.68, dVal: 0.80, dIso: 0.70, dArg: 1.12,
       dTry: 0.16, dLeu: 1.12, choline: 1450, K: 0.70, dGlySer: 0, dPhe: 0, dPheTyr: 0
     }
   }
@@ -365,7 +370,7 @@ export const ROSS_308_PHASES_5: PhaseRequirement[] = [
     days: "0–7 d",
     nutrition: {
       ME: 2930.24, CP: 23.38, Ca: 1.11, avP: 0.53, Na: 0.20, Cl: 0.19,
-      dLys: 1.32, dMet: 0.96, dThr: 0.87, dTry: 0.24, dArg: 1.43,
+      dLys: 1.32, dMet: 0.55, dMetCys: 1.00, dThr: 0.87, dTry: 0.24, dArg: 1.43,
       dGlySer: 1.94, dVal: 1.02, dIso: 0.88, dLeu: 1.41, dHis: 0.83,
       dPhe: 0.83, dPheTyr: 1.52, choline: 1700, K: 0.85
     }
@@ -375,7 +380,7 @@ export const ROSS_308_PHASES_5: PhaseRequirement[] = [
     days: "8–15 d",
     nutrition: {
       ME: 2970.13, CP: 23.04, Ca: 1.04, avP: 0.50, Na: 0.20, Cl: 0.19,
-      dLys: 1.26, dMet: 0.92, dThr: 0.83, dTry: 0.23, dArg: 1.36,
+      dLys: 1.26, dMet: 0.53, dMetCys: 0.96, dThr: 0.83, dTry: 0.23, dArg: 1.36,
       dGlySer: 1.85, dVal: 0.97, dIso: 0.84, dLeu: 1.35, dHis: 0.79,
       dPhe: 0.79, dPheTyr: 1.45, choline: 1600, K: 0.82
     }
@@ -385,7 +390,7 @@ export const ROSS_308_PHASES_5: PhaseRequirement[] = [
     days: "16–27 d",
     nutrition: {
       ME: 3019.41, CP: 21.30, Ca: 0.81, avP: 0.39, Na: 0.19, Cl: 0.18,
-      dLys: 1.19, dMet: 0.89, dThr: 0.79, dTry: 0.21, dArg: 1.27,
+      dLys: 1.19, dMet: 0.52, dMetCys: 0.94, dThr: 0.79, dTry: 0.21, dArg: 1.27,
       dGlySer: 1.67, dVal: 0.92, dIso: 0.80, dLeu: 1.27, dHis: 0.75,
       dPhe: 0.75, dPheTyr: 1.37, choline: 1500, K: 0.78
     }
@@ -395,7 +400,7 @@ export const ROSS_308_PHASES_5: PhaseRequirement[] = [
     days: "28–35 d",
     nutrition: {
       ME: 3076.09, CP: 20.62, Ca: 0.64, avP: 0.31, Na: 0.19, Cl: 0.17,
-      dLys: 1.13, dMet: 0.87, dThr: 0.75, dTry: 0.22, dArg: 1.21,
+      dLys: 1.13, dMet: 0.50, dMetCys: 0.90, dThr: 0.75, dTry: 0.22, dArg: 1.21,
       dGlySer: 1.58, dVal: 0.87, dIso: 0.76, dLeu: 1.21, dHis: 0.71,
       dPhe: 0.71, dPheTyr: 1.32, choline: 1450, K: 0.75
     }
@@ -405,7 +410,7 @@ export const ROSS_308_PHASES_5: PhaseRequirement[] = [
     days: "36–42 d",
     nutrition: {
       ME: 3120.00, CP: 19.93, Ca: 0.60, avP: 0.28, Na: 0.19, Cl: 0.17,
-      dLys: 1.10, dMet: 0.86, dThr: 0.73, dTry: 0.20, dArg: 1.16,
+      dLys: 1.10, dMet: 0.48, dMetCys: 0.88, dThr: 0.73, dTry: 0.20, dArg: 1.16,
       dGlySer: 1.49, dVal: 0.85, dIso: 0.75, dLeu: 1.19, dHis: 0.69,
       dPhe: 0.69, dPheTyr: 1.27, choline: 1450, K: 0.75
     }

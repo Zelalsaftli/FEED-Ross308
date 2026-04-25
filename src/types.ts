@@ -7,7 +7,7 @@ export interface Nutrition {
   Na: any;
   Cl: any;
   dLys: any;
-  dMet: any;
+  dMet?: any;
   dThr: any;
   dVal: any;
   dIso: any;
