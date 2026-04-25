@@ -31,6 +31,8 @@ import {
   Wind,
   Droplets,
   CircleDot,
+  Zap,
+  Info,
   Calculator as CalculatorIcon
 } from 'lucide-react';
 import { 
@@ -61,6 +63,7 @@ import {
   ARGININE_STANDARDS,
   CHOLINE_STANDARDS,
   DCP_STANDARDS,
+  ENZYME_STANDARDS,
   ROSS_308_PHASES_3, 
   ROSS_308_PHASES_4, 
   ROSS_308_PHASES_5, 
@@ -1758,6 +1761,44 @@ export default function App() {
                             أوروبي (17%)
                           </button>
                         </div>
+                      </div>
+                    )}
+
+                    {ingredients.find(i => i.id === editingIngredientId)?.name.includes('أنزيم') && (
+                      <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 flex flex-col gap-3">
+                        <p className="text-sm font-bold text-indigo-900 flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-indigo-600" />
+                          تحميل مصفوفة الأنزيم (Enzyme Matrix):
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, nutrition: { ...ing.nutrition, ...ENZYME_STANDARDS["phytase"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                          >
+                            مصفوفة الفيتاز
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, nutrition: { ...ing.nutrition, ...ENZYME_STANDARDS["multi"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                          >
+                            الأنزيم المتعدد
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-indigo-500 italic">
+                          * هذه القيم تضاف إلى الحسابات النهائية عند إدخال الإنزيم في الخلطة.
+                        </p>
                       </div>
                     )}
 

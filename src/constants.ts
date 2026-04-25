@@ -120,6 +120,15 @@ export const DCP_STANDARDS: Record<string, Partial<Nutrition>> = {
   }
 };
 
+export const ENZYME_STANDARDS: Record<string, Partial<Nutrition>> = {
+  "phytase": {
+    ME: 50000, Ca: 100, avP: 150, Na: 30, dLys: 40, dMet: 10, dThr: 30
+  },
+  "multi": {
+    ME: 80000, CP: 150, dLys: 50, dMet: 15, dThr: 40, dVal: 30
+  }
+};
+
 export const CHOLINE_STANDARDS: Record<string, Partial<Nutrition>> = {
   "60": {
     choline: 507000
@@ -221,33 +230,23 @@ export const DEFAULT_INGREDIENTS: Ingredient[] = DEFAULT_INGREDIENTS_LIST.map((n
   } else if (name.includes("الكولين")) {
     nutrition.choline = 507000;
     price = 1.2;
-  } else if (name.includes("الفيتاز")) {
-    nutrition.ME = 0; nutrition.CP = 0; nutrition.Ca = 0;
-    nutrition.avP = 0; nutrition.Na = 0; nutrition.dLys = 0;
-    nutrition.dArg = 0; nutrition.dMet = 0; nutrition.dThr = 0;
-    nutrition.dVal = 0; nutrition.dIso = 0;
+  } else if (name.includes("الفيتاز") || name.includes("Hiphos")) {
+    Object.assign(nutrition, ENZYME_STANDARDS["phytase"]);
     price = 25.0;
   } else if (name.includes("بروتياز")) {
-    nutrition.ME = 0; nutrition.CP = 0; nutrition.Ca = 0;
-    nutrition.avP = 0; nutrition.Na = 0; nutrition.dLys = 0;
-    nutrition.dArg = 0; nutrition.dMet = 0; nutrition.dThr = 0;
-    nutrition.dVal = 0; nutrition.dIso = 0;
+    nutrition.CP = 50; nutrition.dLys = 20; nutrition.dThr = 15;
     price = 7.0;
-  } else if (name.includes("ألياف")) {
-    nutrition.ME = 0; nutrition.CP = 0; nutrition.Ca = 0;
-    nutrition.avP = 0; nutrition.Na = 0; nutrition.dLys = 0;
-    nutrition.dArg = 0; nutrition.dMet = 0; nutrition.dThr = 0;
-    nutrition.dVal = 0; nutrition.dIso = 0;
-    price = 42.0;
+  } else if (name.includes("ألياف") || name.includes("Rovabio")) {
+    nutrition.ME = 40000;
+    price = 15.0;
+  } else if (name.includes("الأنزيم المتعدد") || name.includes("Natuzyme")) {
+    Object.assign(nutrition, ENZYME_STANDARDS["multi"]);
+    price = 20.0;
   } else if (name.includes("مستحلب")) {
     nutrition.ME = 30000;
     price = 9.6;
   } else if (name.includes("Ecobiol")) {
     price = 9;
-  } else if (name.includes("Natuzyme")) {
-    nutrition.ME = 0; nutrition.avP = 0; nutrition.Ca = 0;
-    nutrition.dLys = 0;
-    price = 9.2;
   } else if (name.includes("Mycofung")) {
     price = 2.25;
   } else if (name.includes("Champrix")) {
