@@ -54,6 +54,13 @@ import {
   CORN_STANDARDS,
   OIL_STANDARDS,
   LIMESTONE_STANDARDS,
+  METHIONINE_STANDARDS,
+  THREONINE_STANDARDS,
+  VALINE_STANDARDS,
+  ISOLEUCINE_STANDARDS,
+  ARGININE_STANDARDS,
+  CHOLINE_STANDARDS,
+  DCP_STANDARDS,
   ROSS_308_PHASES_3, 
   ROSS_308_PHASES_4, 
   ROSS_308_PHASES_5, 
@@ -1492,6 +1499,263 @@ export default function App() {
                             className="px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs font-bold text-blue-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm"
                           >
                             زيت دوار شمس
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {ingredients.find(i => i.id === editingIngredientId)?.name.includes('الميثيونين') && (
+                      <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 flex flex-col gap-3">
+                        <p className="text-sm font-bold text-indigo-900 flex items-center gap-2">
+                          <CircleDot className="w-4 h-4" />
+                          اختر صنف الميثيونين (تحميل التحليل القياسي):
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "ميثيونين صناعي (أوروبي)", nutrition: { ...ing.nutrition, ...METHIONINE_STANDARDS["european"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm"
+                          >
+                            أوروبي (98%)
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "ميثيونين صناعي (صيني)", nutrition: { ...ing.nutrition, ...METHIONINE_STANDARDS["chinese"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm"
+                          >
+                            صيني (94%)
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {ingredients.find(i => i.id === editingIngredientId)?.name.includes('الثريونين') && (
+                      <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex flex-col gap-3">
+                        <p className="text-sm font-bold text-emerald-900 flex items-center gap-2">
+                          <CircleDot className="w-4 h-4" />
+                          اختر صنف الثريونين (تحميل التحليل القياسي):
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "ثريونين صناعي (أوروبي)", nutrition: { ...ing.nutrition, ...THREONINE_STANDARDS["european"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-emerald-200 rounded-xl text-xs font-bold text-emerald-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-sm"
+                          >
+                            أوروبي (98%)
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "ثريونين صناعي (صيني)", nutrition: { ...ing.nutrition, ...THREONINE_STANDARDS["chinese"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-emerald-200 rounded-xl text-xs font-bold text-emerald-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-sm"
+                          >
+                            صيني (94%)
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {ingredients.find(i => i.id === editingIngredientId)?.name.includes('الفالين') && (
+                      <div className="bg-cyan-50 p-4 rounded-2xl border border-cyan-100 flex flex-col gap-3">
+                        <p className="text-sm font-bold text-cyan-900 flex items-center gap-2">
+                          <CircleDot className="w-4 h-4" />
+                          اختر صنف الفالين (تحميل التحليل القياسي):
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "فالين صناعي (أوروبي)", nutrition: { ...ing.nutrition, ...VALINE_STANDARDS["european"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-cyan-200 rounded-xl text-xs font-bold text-cyan-700 hover:bg-cyan-600 hover:text-white hover:border-cyan-600 transition-all shadow-sm"
+                          >
+                            أوروبي (98%)
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "فالين صناعي (صيني)", nutrition: { ...ing.nutrition, ...VALINE_STANDARDS["chinese"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-cyan-200 rounded-xl text-xs font-bold text-cyan-700 hover:bg-cyan-600 hover:text-white hover:border-cyan-600 transition-all shadow-sm"
+                          >
+                            صيني (94%)
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {ingredients.find(i => i.id === editingIngredientId)?.name.includes('إيزوليوسين') && (
+                      <div className="bg-teal-50 p-4 rounded-2xl border border-teal-100 flex flex-col gap-3">
+                        <p className="text-sm font-bold text-teal-900 flex items-center gap-2">
+                          <CircleDot className="w-4 h-4" />
+                          اختر صنف الإيزوليوسين (تحميل التحليل القياسي):
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "إيزوليوسين صناعي (أوروبي)", nutrition: { ...ing.nutrition, ...ISOLEUCINE_STANDARDS["european"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-teal-200 rounded-xl text-xs font-bold text-teal-700 hover:bg-teal-600 hover:text-white hover:border-teal-600 transition-all shadow-sm"
+                          >
+                            أوروبي (98%)
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "إيزوليوسين صناعي (صيني)", nutrition: { ...ing.nutrition, ...ISOLEUCINE_STANDARDS["chinese"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-teal-200 rounded-xl text-xs font-bold text-teal-700 hover:bg-teal-600 hover:text-white hover:border-teal-600 transition-all shadow-sm"
+                          >
+                            صيني (94%)
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {ingredients.find(i => i.id === editingIngredientId)?.name.includes('أرجنين') && (
+                      <div className="bg-violet-50 p-4 rounded-2xl border border-violet-100 flex flex-col gap-3">
+                        <p className="text-sm font-bold text-violet-900 flex items-center gap-2">
+                          <CircleDot className="w-4 h-4" />
+                          اختر صنف الأرجنين (تحميل التحليل القياسي):
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "أرجنين صناعي (أوروبي)", nutrition: { ...ing.nutrition, ...ARGININE_STANDARDS["european"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-violet-200 rounded-xl text-xs font-bold text-violet-700 hover:bg-violet-600 hover:text-white hover:border-violet-600 transition-all shadow-sm"
+                          >
+                            أوروبي (98%)
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "أرجنين صناعي (صيني)", nutrition: { ...ing.nutrition, ...ARGININE_STANDARDS["chinese"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-violet-200 rounded-xl text-xs font-bold text-violet-700 hover:bg-violet-600 hover:text-white hover:border-violet-600 transition-all shadow-sm"
+                          >
+                            صيني (94%)
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {ingredients.find(i => i.id === editingIngredientId)?.name.includes('الكولين') && (
+                      <div className="bg-sky-50 p-4 rounded-2xl border border-sky-100 flex flex-col gap-3">
+                        <p className="text-sm font-bold text-sky-900 flex items-center gap-2">
+                          <CircleDot className="w-4 h-4" />
+                          اختر صنف الكولين (تحميل التحليل القياسي):
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "كلوريد الكولين (60%)", nutrition: { ...ing.nutrition, ...CHOLINE_STANDARDS["60"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-sky-200 rounded-xl text-xs font-bold text-sky-700 hover:bg-sky-600 hover:text-white hover:border-sky-600 transition-all shadow-sm"
+                          >
+                            تركيز (60%)
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "كلوريد الكولين (70%)", nutrition: { ...ing.nutrition, ...CHOLINE_STANDARDS["70"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-sky-200 rounded-xl text-xs font-bold text-sky-700 hover:bg-sky-600 hover:text-white hover:border-sky-600 transition-all shadow-sm"
+                          >
+                            تركيز (70%)
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {ingredients.find(i => i.id === editingIngredientId)?.name.includes('فوسفات') && (
+                      <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 flex flex-col gap-3">
+                        <p className="text-sm font-bold text-orange-900 flex items-center gap-2">
+                          <CircleDot className="w-4 h-4" />
+                          اختر صنف الفوسفات (تحميل التحليل القياسي):
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "ديكالسيوم فوسفات (محلي)", nutrition: { ...ing.nutrition, ...DCP_STANDARDS["local"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-orange-200 rounded-xl text-xs font-bold text-orange-700 hover:bg-orange-600 hover:text-white hover:border-orange-600 transition-all shadow-sm"
+                          >
+                            محلي (16%)
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "ديكالسيوم فوسفات (صيني)", nutrition: { ...ing.nutrition, ...DCP_STANDARDS["chinese"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-orange-200 rounded-xl text-xs font-bold text-orange-700 hover:bg-orange-600 hover:text-white hover:border-orange-600 transition-all shadow-sm"
+                          >
+                            صيني (16.5%)
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "ديكالسيوم فوسفات (أوروبي)", nutrition: { ...ing.nutrition, ...DCP_STANDARDS["european"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-orange-200 rounded-xl text-xs font-bold text-orange-700 hover:bg-orange-600 hover:text-white hover:border-orange-600 transition-all shadow-sm"
+                          >
+                            أوروبي (17%)
                           </button>
                         </div>
                       </div>

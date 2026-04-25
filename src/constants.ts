@@ -63,6 +63,72 @@ export const LIMESTONE_STANDARDS: Record<string, Partial<Nutrition>> = {
   "40": { Ca: 40 }
 };
 
+export const METHIONINE_STANDARDS: Record<string, Partial<Nutrition>> = {
+  "european": {
+    ME: 4858, CP: 59, dMet: 98
+  },
+  "chinese": {
+    ME: 4660, CP: 57, dMet: 94
+  }
+};
+
+export const THREONINE_STANDARDS: Record<string, Partial<Nutrition>> = {
+  "european": {
+    ME: 3067, CP: 78, dThr: 98
+  },
+  "chinese": {
+    ME: 2950, CP: 75, dThr: 94
+  }
+};
+
+export const VALINE_STANDARDS: Record<string, Partial<Nutrition>> = {
+  "european": {
+    ME: 4990, CP: 78, dVal: 98
+  },
+  "chinese": {
+    ME: 4790, CP: 75, dVal: 94
+  }
+};
+
+export const ISOLEUCINE_STANDARDS: Record<string, Partial<Nutrition>> = {
+  "european": {
+    ME: 5700, CP: 69, dIso: 98
+  },
+  "chinese": {
+    ME: 5470, CP: 66, dIso: 94
+  }
+};
+
+export const ARGININE_STANDARDS: Record<string, Partial<Nutrition>> = {
+  "european": {
+    ME: 2863, CP: 187, dArg: 98
+  },
+  "chinese": {
+    ME: 2760, CP: 179, dArg: 94
+  }
+};
+
+export const DCP_STANDARDS: Record<string, Partial<Nutrition>> = {
+  "local": {
+    Ca: 22, avP: 16
+  },
+  "chinese": {
+    Ca: 22, avP: 16.5
+  },
+  "european": {
+    Ca: 22, avP: 17
+  }
+};
+
+export const CHOLINE_STANDARDS: Record<string, Partial<Nutrition>> = {
+  "60": {
+    choline: 507000
+  },
+  "70": {
+    choline: 607000
+  }
+};
+
 export const INITIAL_NUTRITION: Nutrition = {
   ME: 0, CP: 0, Ca: 0, avP: 0, Na: 0, Cl: 0,
   dLys: 0, dMet: 0, dThr: 0, dVal: 0, dIso: 0,
@@ -133,17 +199,17 @@ export const DEFAULT_INGREDIENTS: Ingredient[] = DEFAULT_INGREDIENTS_LIST.map((n
     nutrition.Ca = 36;
     price = 0.05;
   } else if (name.includes("اللايسين")) {
-    nutrition.dLys = 75.4; nutrition.ME = 3990; nutrition.CP = 94.4; price = 2.1;
+    nutrition.dLys = 74.2; nutrition.ME = 3607; nutrition.CP = 94; nutrition.Cl = 19.4; price = 2.1;
   } else if (name.includes("الميثيونين")) {
-    nutrition.dMet = 96; nutrition.ME = 5020; nutrition.CP = 58.1; price = 3.6;
+    nutrition.dMet = 98; nutrition.ME = 4858; nutrition.CP = 59; price = 3.6;
   } else if (name.includes("الثريونين")) {
-    nutrition.dThr = 96; nutrition.ME = 3630; nutrition.CP = 72.5; price = 2.7;
+    nutrition.dThr = 98; nutrition.ME = 3067; nutrition.CP = 78; price = 2.7;
   } else if (name.includes("الفالين")) {
-    nutrition.dVal = 96; nutrition.ME = 5500; nutrition.CP = 72.6; price = 7;
+    nutrition.dVal = 98; nutrition.ME = 4990; nutrition.CP = 78; price = 7;
   } else if (name.includes("إيزوليوسين")) {
-    nutrition.dIso = 96; nutrition.ME = 6520; nutrition.CP = 65.5; price = 7;
+    nutrition.dIso = 98; nutrition.ME = 5700; nutrition.CP = 69; price = 7;
   } else if (name.includes("أرجنين")) {
-    nutrition.dArg = 96; nutrition.ME = 6360; nutrition.CP = 201.0; price = 9.25;
+    nutrition.dArg = 98; nutrition.ME = 2863; nutrition.CP = 187; price = 9.25;
   } else if (name.includes("فوسفات")) {
     nutrition.Ca = 22; nutrition.avP = 16.5; price = 0.935;
   } else if (name.includes("ملح")) {
@@ -153,7 +219,7 @@ export const DEFAULT_INGREDIENTS: Ingredient[] = DEFAULT_INGREDIENTS_LIST.map((n
   } else if (name.includes("بيكربونات الصوديوم")) {
     nutrition.Na = 27; price = 0.75;
   } else if (name.includes("الكولين")) {
-    nutrition.choline = 550000; // 55% choline content for 60% chloride product
+    nutrition.choline = 507000;
     price = 1.2;
   } else if (name.includes("الفيتاز")) {
     nutrition.ME = 0; nutrition.CP = 0; nutrition.Ca = 0;
