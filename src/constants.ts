@@ -1,15 +1,74 @@
 import { Ingredient, PhaseRequirement, Nutrition, PerformanceStandard } from './types';
 
+export const SBM_STANDARDS: Record<string, Nutrition> = {
+  "44.5": {
+    DM: 89.5, ME: 2212, CP: 44.5, Ca: 0.31, avP: 0.22, Na: 0.01, K: 1.94, Cl: 0.05,
+    dLys: 2.52, dMet: 0.43, dMetCys: 1.08, dThr: 1.52, dVal: 1.87, dIso: 1.79, dArg: 3.0,
+    dTry: 0.55, dGlySer: 3.72, dPhe: 2.02, dPheTyr: 3.47, dLeu: 3.02, dHis: 1.03, choline: 2731,
+    EE: 1.93, Linoleic: 0.68, Linolenic: 0.09, Starch: 4.7, Fiber: 5.84, NDF: 13.1, ADF: 8.3,
+    TotalP: 0.57, NetEnergy: 1715, PhytateP: 0.35
+  },
+  "45.6": {
+    DM: 89.5, ME: 2258, CP: 45.6, Ca: 0.3, avP: 0.22, Na: 0.01, K: 1.97, Cl: 0.05,
+    dLys: 2.6, dMet: 0.44, dMetCys: 1.11, dThr: 1.58, dVal: 1.94, dIso: 1.86, dArg: 3.09,
+    dTry: 0.57, dGlySer: 3.87, dPhe: 2.1, dPheTyr: 3.6, dLeu: 3.12, dHis: 1.07, choline: 2731,
+    EE: 1.91, Linoleic: 0.67, Linolenic: 0.09, Starch: 4.74, Fiber: 4.82, NDF: 11.6, ADF: 7.07,
+    TotalP: 0.58, NetEnergy: 1746, PhytateP: 0.36
+  },
+  "46.5": {
+    DM: 89.5, ME: 2296, CP: 46.5, Ca: 0.29, avP: 0.22, Na: 0.01, K: 1.99, Cl: 0.05,
+    dLys: 2.68, dMet: 0.45, dMetCys: 1.15, dThr: 1.63, dVal: 2.0, dIso: 1.91, dArg: 3.16,
+    dTry: 0.59, dGlySer: 4.0, dPhe: 2.16, dPheTyr: 3.71, dLeu: 3.22, dHis: 1.1, choline: 2731,
+    EE: 1.89, Linoleic: 0.66, Linolenic: 0.09, Starch: 4.77, Fiber: 3.98, NDF: 10.41, ADF: 6.04,
+    TotalP: 0.59, NetEnergy: 1771, PhytateP: 0.37
+  },
+  "48.2": {
+    DM: 88.9, ME: 2295, CP: 48.2, Ca: 0.34, avP: 0.23, Na: 0.02, K: 2.13, Cl: 0.05,
+    dLys: 2.74, dMet: 0.47, dMetCys: 1.21, dThr: 1.64, dVal: 2.0, dIso: 1.99, dArg: 3.23,
+    dTry: 0.61, dGlySer: 4.01, dPhe: 2.34, dPheTyr: 3.83, dLeu: 3.35, dHis: 1.14, choline: 2731,
+    EE: 1.72, Linoleic: 0.77, Linolenic: 0.1, Starch: 3.0, Fiber: 4.55, NDF: 11.5, ADF: 8.6,
+    TotalP: 0.59, NetEnergy: 1769, PhytateP: 0.36
+  }
+};
+
+export const CORN_STANDARDS: Record<string, Nutrition> = {
+  "7.6": {
+    DM: 86.8, ME: 3296, CP: 7.65, Ca: 0.01, avP: 0.05, K: 0.31, Na: 0.01, Cl: 0.09,
+    dLys: 0.2, dMet: 0.14, dMetCys: 0.28, dThr: 0.28, dTry: 0.06, dArg: 0.35, dGlySer: 0.56,
+    dVal: 0.34, dIso: 0.25, dLeu: 0.89, dHis: 0.21, dPhe: 0.32, dPheTyr: 0.59, choline: 620,
+    EE: 3.65, Linoleic: 1.87, Linolenic: 0.03, Starch: 62.1, Fiber: 1.69, NDF: 13.5, ADF: 3.1,
+    TotalP: 0.22, NetEnergy: 2656, PhytateP: 0.18, dAla: 0.48, dCys: 0.14, dTyr: 0.27, dGly: 0.24, dSer: 0.32
+  },
+  "7.8": {
+    DM: 88.6, ME: 3364, CP: 7.81, Ca: 0.02, avP: 0.05, K: 0.32, Na: 0.01, Cl: 0.09,
+    dLys: 0.21, dMet: 0.15, dMetCys: 0.29, dThr: 0.28, dTry: 0.06, dArg: 0.36, dGlySer: 0.57,
+    dVal: 0.34, dIso: 0.26, dLeu: 0.91, dHis: 0.22, dPhe: 0.33, dPheTyr: 0.6, choline: 620,
+    EE: 3.73, Linoleic: 1.91, Linolenic: 0.03, Starch: 63.4, Fiber: 1.72, NDF: 13.8, ADF: 3.16,
+    TotalP: 0.23, NetEnergy: 2711, PhytateP: 0.18, dAla: 0.49, dCys: 0.14, dTyr: 0.28, dGly: 0.24, dSer: 0.33
+  }
+};
+
+export const OIL_STANDARDS: Record<string, Partial<Nutrition>> = {
+  "soy": {
+    ME: 8800, Linoleic: 52.78, Linolenic: 6.8
+  },
+  "sunflower": {
+    ME: 9000, Linoleic: 51.98, Linolenic: 0.25
+  }
+};
+
 export const INITIAL_NUTRITION: Nutrition = {
   ME: 0, CP: 0, Ca: 0, avP: 0, Na: 0, Cl: 0,
   dLys: 0, dMet: 0, dThr: 0, dVal: 0, dIso: 0,
   dArg: 0, dGlySer: 0, dPhe: 0, dPheTyr: 0, choline: 0, K: 0,
-  dTry: 0, dLeu: 0, dHis: 0
+  DM: 0, dTry: 0, dLeu: 0, dHis: 0, dMetCys: 0,
+  EE: 0, Fiber: 0, Starch: 0, ADF: 0, NDF: 0, TotalP: 0,
+  NetEnergy: 0, Linoleic: 0, Linolenic: 0, PhytateP: 0
 };
 
 export const DEFAULT_INGREDIENTS_LIST: string[] = [
-  "ذرة صفراء (7.5)",
-  "كسبة فول الصويا (44)",
+  "ذرة صفراء",
+  "كسبة فول صويا",
   "زيت نباتي",
   "الحجر الكلسي",
   "ديكالسيوم فوسفات",
@@ -51,24 +110,18 @@ export const DEFAULT_INGREDIENTS: Ingredient[] = DEFAULT_INGREDIENTS_LIST.map((n
   const nutrition = { ...INITIAL_NUTRITION };
   let price = 0.5; // Default price
   
-  if (name.includes("ذرة")) {
-    nutrition.ME = 3250; nutrition.CP = 7.5; nutrition.Ca = 0.01; nutrition.avP = 0.05;
-    nutrition.Na = 0.003; nutrition.K = 0.3; nutrition.Cl = 0.09;
-    nutrition.dLys = 0.20; nutrition.dMet = 0.25; nutrition.dThr = 0.28; 
-    nutrition.dVal = 0.31; nutrition.dIso = 0.25; nutrition.dArg = 0.33;
-    nutrition.dTry = 0.05; nutrition.dGlySer = 0.55; nutrition.dPhe = 0.30; nutrition.dPheTyr = 0.55;
-    nutrition.choline = 600;
-    price = 0.28;
+  if (name.includes("زيت")) {
+    const std = OIL_STANDARDS["soy"];
+    Object.assign(nutrition, std);
+    price = 1.35;
   } else if (name.includes("صويا")) {
-    nutrition.ME = 2250; nutrition.CP = 44; nutrition.Ca = 0.29; nutrition.avP = 0.3;
-    nutrition.Na = 0.014; nutrition.K = 2.08; nutrition.Cl = 0.03;
-    nutrition.dLys = 2.52; nutrition.dMet = 1.08; nutrition.dThr = 1.52; 
-    nutrition.dVal = 1.87; nutrition.dIso = 1.79; nutrition.dArg = 3.0;
-    nutrition.dTry = 0.55; nutrition.dGlySer = 3.72; nutrition.dPhe = 2.02; nutrition.dPheTyr = 3.47;
-    nutrition.choline = 2600;
+    const std = SBM_STANDARDS["44.5"];
+    Object.assign(nutrition, std);
     price = 0.58;
-  } else if (name.includes("زيت")) {
-    nutrition.ME = 8800; price = 1.35;
+  } else if (name.includes("ذرة")) {
+    const std = CORN_STANDARDS["7.6"];
+    Object.assign(nutrition, std);
+    price = 0.28;
   } else if (name.includes("اللايسين")) {
     nutrition.dLys = 75.4; nutrition.ME = 3990; nutrition.CP = 94.4; price = 2.1;
   } else if (name.includes("الميثيونين")) {

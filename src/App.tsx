@@ -29,6 +29,7 @@ import {
   Sun,
   FlaskConical,
   Wind,
+  Droplets,
   Calculator as CalculatorIcon
 } from 'lucide-react';
 import { 
@@ -48,6 +49,9 @@ import { SyrianBroilerEngine, ModelSettings } from './services/syrianModelEngine
 import { Ingredient, Nutrition, PhaseRequirement, FeedEntry, Snapshot, PerformanceStandard } from './types';
 import { 
   DEFAULT_INGREDIENTS, 
+  SBM_STANDARDS,
+  CORN_STANDARDS,
+  OIL_STANDARDS,
   ROSS_308_PHASES_3, 
   ROSS_308_PHASES_4, 
   ROSS_308_PHASES_5, 
@@ -214,6 +218,36 @@ export default function App() {
   const baseRequirement = useMemo(() => {
     return availablePhases[currentPhaseIndex]?.nutrition || availablePhases[0].nutrition;
   }, [availablePhases, currentPhaseIndex]);
+
+  useEffect(() => {
+    // When current phase changes, update oil ME based on age
+    const phaseDays = availablePhases[currentPhaseIndex]?.days || "";
+    const startDayMatch = phaseDays.match(/^(\d+)/);
+    const startDay = startDayMatch ? parseInt(startDayMatch[1]) : 0;
+
+    setIngredients(prev => prev.map(ing => {
+      if (ing.name.includes("زيت")) {
+        const isSunflower = ing.name.includes("دوار");
+        const baseME = isSunflower ? 9000 : 8800;
+        let bonus = 0;
+        
+        // 1-14 days: base
+        // 15-28 days: +100
+        // >28 days: +200
+        if (startDay >= 15 && startDay <= 28) bonus = 100;
+        else if (startDay > 28) bonus = 200;
+        
+        return {
+          ...ing,
+          nutrition: {
+            ...ing.nutrition,
+            ME: baseME + bonus
+          }
+        };
+      }
+      return ing;
+    }));
+  }, [currentPhaseIndex, availablePhases]);
 
   const currentRequirement = useMemo(() => {
     if (!isSummerStrategyActive) return baseRequirement;
@@ -520,6 +554,11 @@ export default function App() {
     }
   };
 
+  const resetAllIngredientsToDefault = () => {
+    if (!window.confirm("هل تريد إعادة ضبط جميع المكونات إلى القيم الافتراضية؟ سيتم مسح أي تعديلات قمت بها على أسعار أو نسب المكونات.")) return;
+    setIngredients(DEFAULT_INGREDIENTS);
+  };
+
   const zeroEnzymeMatrix = () => {
     if (!window.confirm("هل تريد تصفير قيم المصفوفة الغذائية (Matrix) لجميع الإنزيمات؟")) return;
     setIngredients(prev => prev.map(ing => {
@@ -612,6 +651,7 @@ export default function App() {
   };
 
   const nutrientsToEdit: { key: keyof Nutrition; label: string }[] = [
+    { key: 'DM', label: 'Dry Matter (%)' },
     { key: 'ME', label: 'ME (Energy)' },
     { key: 'CP', label: 'CP (Protein)' },
     { key: 'Ca', label: 'Ca' },
@@ -620,6 +660,7 @@ export default function App() {
     { key: 'Cl', label: 'Cl' },
     { key: 'dLys', label: 'Lys' },
     { key: 'dMet', label: 'Met' },
+    { key: 'dMetCys', label: 'Met+Cys' },
     { key: 'dThr', label: 'Thr' },
     { key: 'K', label: 'Potassium (K %)' },
     { key: 'dVal', label: 'Val' },
@@ -629,8 +670,55 @@ export default function App() {
     { key: 'dPhe', label: 'Phe' },
     { key: 'dPheTyr', label: 'Phe+Tyr' },
     { key: 'dTry', label: 'Try' },
+    { key: 'dLeu', label: 'Leu' },
+    { key: 'dHis', label: 'His' },
+    { key: 'dAla', label: 'Ala' },
+    { key: 'dCys', label: 'Cys' },
+    { key: 'dTyr', label: 'Tyr' },
+    { key: 'dGly', label: 'Gly' },
+    { key: 'dSer', label: 'Ser' },
+    { key: 'EE', label: 'EE (Fat)' },
+    { key: 'Fiber', label: 'Fiber' },
+    { key: 'Starch', label: 'Starch' },
+    { key: 'ADF', label: 'ADF' },
+    { key: 'NDF', label: 'NDF' },
+    { key: 'TotalP', label: 'Total P' },
+    { key: 'NetEnergy', label: 'Net Energy' },
+    { key: 'Linoleic', label: 'Linoleic Acid' },
+    { key: 'Linolenic', label: 'Linolenic Acid' },
+    { key: 'PhytateP', label: 'Phytate P' },
     { key: 'choline', label: 'Choline (mg/kg)' },
   ];
+
+  const handleMoistureAdjustment = (id: string, targetDM: number) => {
+    if (isNaN(targetDM) || targetDM <= 0 || targetDM > 100) {
+      alert("يرجى إدخال نسبة مادة جافة صحيحة بين 0 و 100");
+      return;
+    }
+
+    setIngredients(prev => prev.map(ing => {
+      if (ing.id === id) {
+        const currentDM = parseFloat(ing.nutrition.DM) || 88;
+        if (currentDM <= 0) return ing;
+        
+        const factor = targetDM / currentDM;
+        const newNutrition = { ...ing.nutrition };
+        
+        // Exclude DM from scaling as we'll set it specifically
+        Object.keys(newNutrition).forEach(key => {
+          if (key === 'DM') return;
+          const val = parseFloat(newNutrition[key]);
+          if (!isNaN(val)) {
+            newNutrition[key] = (val * factor).toFixed(4); // Keep precision
+          }
+        });
+        
+        newNutrition.DM = targetDM.toString();
+        return { ...ing, nutrition: newNutrition };
+      }
+      return ing;
+    }));
+  };
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans rtl" dir="rtl">
@@ -1222,13 +1310,24 @@ export default function App() {
                     <Settings className="w-4 h-4 text-gray-500" />
                     قائمة المكونات
                   </div>
-                  <button 
-                    onClick={zeroEnzymeMatrix}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-[10px] font-black border border-amber-200 hover:bg-amber-100 transition-all uppercase tracking-tighter"
-                  >
-                    <Wind className="w-3 h-3" />
-                    تصفير الأنزيمات
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={zeroEnzymeMatrix}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-[10px] font-black border border-amber-200 hover:bg-amber-100 transition-all uppercase tracking-tighter"
+                      title="تصفير مصفوفة الإنزيمات"
+                    >
+                      <Wind className="w-3 h-3" />
+                      تصفير مصفوفة
+                    </button>
+                    <button 
+                      onClick={resetAllIngredientsToDefault}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black border border-blue-200 hover:bg-blue-100 transition-all uppercase tracking-tighter"
+                      title="إعادة ضبط الكل للافتراضي"
+                    >
+                      <RefreshCcw className="w-3 h-3" />
+                      إعادة ضبط الكل
+                    </button>
+                  </div>
                 </div>
                 <div className="overflow-y-auto h-full pb-20">
                   {ingredients.map((ing) => (
@@ -1260,6 +1359,132 @@ export default function App() {
                         <Save className="w-6 h-6" />
                       </div>
                     </div>
+
+                  <div className="space-y-6">
+                    {ingredients.find(i => i.id === editingIngredientId)?.name.includes('كسبة') && ingredients.find(i => i.id === editingIngredientId)?.name.includes('صويا') && (
+                      <div className="bg-green-50 p-4 rounded-2xl border border-green-100 flex flex-col gap-3">
+                        <p className="text-sm font-bold text-green-900 flex items-center gap-2">
+                          <Sun className="w-4 h-4" />
+                          اختر صنف كسبة الصويا (تحميل التحليل القياسي):
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {Object.keys(SBM_STANDARDS).map(level => (
+                            <button
+                              key={level}
+                              onClick={() => {
+                                setIngredients(prev => prev.map(ing => 
+                                  ing.id === editingIngredientId 
+                                    ? { ...ing, nutrition: { ...SBM_STANDARDS[level] } } 
+                                    : ing
+                                ));
+                              }}
+                              className="px-3 py-2 bg-white border border-green-200 rounded-xl text-xs font-bold text-green-700 hover:bg-green-600 hover:text-white hover:border-green-600 transition-all shadow-sm"
+                            >
+                              SBM {level}%
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {ingredients.find(i => i.id === editingIngredientId)?.name.includes('ذرة') && (
+                      <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100 flex flex-col gap-3">
+                        <p className="text-sm font-bold text-yellow-900 flex items-center gap-2">
+                          <Sun className="w-4 h-4" />
+                          اختر صنف الذرة الصفراء (تحميل التحليل القياسي):
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {Object.keys(CORN_STANDARDS).map(level => (
+                            <button
+                              key={level}
+                              onClick={() => {
+                                setIngredients(prev => prev.map(ing => 
+                                  ing.id === editingIngredientId 
+                                    ? { ...ing, nutrition: { ...CORN_STANDARDS[level] } } 
+                                    : ing
+                                ));
+                              }}
+                              className="px-3 py-2 bg-white border border-yellow-200 rounded-xl text-xs font-bold text-yellow-700 hover:bg-yellow-600 hover:text-white hover:border-yellow-600 transition-all shadow-sm"
+                            >
+                              Corn CP {level}%
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {ingredients.find(i => i.id === editingIngredientId)?.name.includes('زيت') && (
+                      <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex flex-col gap-3">
+                        <p className="text-sm font-bold text-blue-900 flex items-center gap-2">
+                          <Droplets className="w-4 h-4" />
+                          اختر صنف الزيت (تحميل التحليل القياسي):
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "زيت صويا", nutrition: { ...ing.nutrition, ...OIL_STANDARDS["soy"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs font-bold text-blue-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm"
+                          >
+                            زيت صويا
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "زيت دوار شمس", nutrition: { ...ing.nutrition, ...OIL_STANDARDS["sunflower"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs font-bold text-blue-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm"
+                          >
+                            زيت دوار شمس
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {(ingredients.find(i => i.id === editingIngredientId)?.name.includes('صويا') || 
+                      ingredients.find(i => i.id === editingIngredientId)?.name.includes('ذرة')) && (
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-amber-100 rounded-lg text-amber-700">
+                            <Droplets className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-amber-900">تعديل المادة الجافة (DM %)</p>
+                            <p className="text-[10px] text-amber-700">تعديل كافة العناصر بناءً على الرطوبة الفعلية</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <input 
+                            type="number"
+                            placeholder="DM %"
+                            className="w-full sm:w-32 bg-white border border-amber-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                const val = parseFloat((e.target as HTMLInputElement).value);
+                                editingIngredientId && handleMoistureAdjustment(editingIngredientId, val);
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={(e) => {
+                              const input = (e.currentTarget.previousSibling as HTMLInputElement);
+                              const val = parseFloat(input.value);
+                              editingIngredientId && handleMoistureAdjustment(editingIngredientId, val);
+                            }}
+                            className="bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-amber-700 transition-all flex items-center gap-2 whitespace-nowrap"
+                          >
+                            تعديل
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex justify-start">
                       <button
@@ -1295,6 +1520,7 @@ export default function App() {
                         </div>
                       ))}
                     </div>
+                  </div>
                   </div>
                 ) : (
                   <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl h-96 flex flex-col items-center justify-center text-gray-400 space-y-4">
@@ -1521,7 +1747,8 @@ export default function App() {
                     <tbody className="divide-y divide-gray-50">
                       {[
                         { k: 'dLys', l: 'لايسين (dLys)' },
-                        { k: 'dMet', l: 'الميثيونين + السيستين (dM+C)' },
+                        { k: 'dMet', l: 'الميثيونين (dMet)' },
+                        { k: 'dMetCys', l: 'الميثيونين + السيستين (dM+C)' },
                         { k: 'dThr', l: 'ثريونين (dThr)' },
                         { k: 'dVal', l: 'فالين (dVal)' },
                         { k: 'dIso', l: 'إيزوليوسين (dIso)' },
@@ -1529,6 +1756,9 @@ export default function App() {
                         { k: 'dGlySer', l: 'غليسين + سيرين (dG+S)' },
                         { k: 'dPhe', l: 'فينيل ألانين (dPhe)' },
                         { k: 'dPheTyr', l: 'فينيل ألانين + تيروسين' },
+                        { k: 'dTry', l: 'تريبتوفان (dTry)' },
+                        { k: 'dLeu', l: 'ليوسين (dLeu)' },
+                        { k: 'dHis', l: 'هستيدين (dHis)' },
                       ].map(({ k, l }) => {
                         const key = k as keyof Nutrition;
                         const act = actualNutrition[key] || 0;
@@ -1564,6 +1794,59 @@ export default function App() {
                               <span className={`px-3 py-1 rounded-full text-xs font-bold bg-white border border-gray-100 shadow-sm ${evalRes.color}`}>
                                 {evalRes.label}
                               </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              {/* Detailed Fiber & Energy Analysis */}
+              <section className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-8 py-6 bg-gray-50 border-b border-gray-200">
+                   <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 bg-amber-600 rounded-xl flex items-center justify-center text-white">
+                        <Database className="w-5 h-5" />
+                     </div>
+                     <h2 className="text-xl font-bold">تحليل الألياف والطاقة المتقدم</h2>
+                   </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
+                        <th className="px-8 py-4 text-right">العنصر</th>
+                        <th className="px-8 py-4 text-center">المتحقق الحالي</th>
+                        <th className="px-8 py-4 text-center">الوحدة</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {[
+                        { k: 'NetEnergy', l: 'الطاقة الصافية (Net Energy)', u: 'kcal' },
+                        { k: 'EE', l: 'الدهن الخام (EE)', u: '%' },
+                        { k: 'Fiber', l: 'الألياف الخام (Crude Fiber)', u: '%' },
+                        { k: 'Starch', l: 'النشاء (Starch)', u: '%' },
+                        { k: 'NDF', l: 'الألياف المتعادلة (NDF)', u: '%' },
+                        { k: 'ADF', l: 'الألياف الحمضية (ADF)', u: '%' },
+                        { k: 'TotalP', l: 'الفوسفور الكلي (Total P)', u: '%' },
+                        { k: 'PhytateP', l: 'فوسفور الفيتات (Phytate P)', u: '%' },
+                        { k: 'Linoleic', l: 'حمض اللينوليك', u: '%' },
+                        { k: 'Linolenic', l: 'حمض اللينولينيك', u: '%' },
+                      ].map(({ k, l, u }) => {
+                        const key = k as keyof Nutrition;
+                        const act = actualNutrition[key] || 0;
+                        return (
+                          <tr key={k} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-8 py-4">
+                              <span className="font-bold text-gray-800">{l}</span>
+                            </td>
+                            <td className="px-8 py-4 text-center font-mono font-bold text-amber-700">
+                              {act.toFixed(k === 'NetEnergy' ? 0 : 3)}
+                            </td>
+                            <td className="px-8 py-4 text-center text-[10px] text-gray-400 uppercase">
+                              {u}
                             </td>
                           </tr>
                         );

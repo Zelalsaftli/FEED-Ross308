@@ -17,6 +17,26 @@ export interface Nutrition {
   dPheTyr: any;
   choline: any;
   K: any;
+  DM?: any;
+  dTry?: any;
+  dLeu?: any;
+  dHis?: any;
+  dMetCys?: any;
+  EE?: any;
+  Fiber?: any;
+  Starch?: any;
+  ADF?: any;
+  NDF?: any;
+  TotalP?: any;
+  NetEnergy?: any;
+  Linoleic?: any;
+  Linolenic?: any;
+  PhytateP?: any;
+  dAla?: any;
+  dCys?: any;
+  dTyr?: any;
+  dGly?: any;
+  dSer?: any;
 }
 
 export interface Ingredient {
