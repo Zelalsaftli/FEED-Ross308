@@ -57,13 +57,20 @@ export const OIL_STANDARDS: Record<string, Partial<Nutrition>> = {
   }
 };
 
+export const LIMESTONE_STANDARDS: Record<string, Partial<Nutrition>> = {
+  "36": { Ca: 36 },
+  "38.5": { Ca: 38.5 },
+  "40": { Ca: 40 }
+};
+
 export const INITIAL_NUTRITION: Nutrition = {
   ME: 0, CP: 0, Ca: 0, avP: 0, Na: 0, Cl: 0,
   dLys: 0, dMet: 0, dThr: 0, dVal: 0, dIso: 0,
   dArg: 0, dGlySer: 0, dPhe: 0, dPheTyr: 0, choline: 0, K: 0,
   DM: 0, dTry: 0, dLeu: 0, dHis: 0, dMetCys: 0,
   EE: 0, Fiber: 0, Starch: 0, ADF: 0, NDF: 0, TotalP: 0,
-  NetEnergy: 0, Linoleic: 0, Linolenic: 0, PhytateP: 0
+  NetEnergy: 0, Linoleic: 0, Linolenic: 0, PhytateP: 0,
+  dAla: 0, dCys: 0, dTyr: 0, dGly: 0, dSer: 0
 };
 
 export const DEFAULT_INGREDIENTS_LIST: string[] = [
@@ -122,6 +129,9 @@ export const DEFAULT_INGREDIENTS: Ingredient[] = DEFAULT_INGREDIENTS_LIST.map((n
     const std = CORN_STANDARDS["7.6"];
     Object.assign(nutrition, std);
     price = 0.28;
+  } else if (name.includes("كلسي") || name.includes("نحاته")) {
+    nutrition.Ca = 36;
+    price = 0.05;
   } else if (name.includes("اللايسين")) {
     nutrition.dLys = 75.4; nutrition.ME = 3990; nutrition.CP = 94.4; price = 2.1;
   } else if (name.includes("الميثيونين")) {
@@ -134,8 +144,6 @@ export const DEFAULT_INGREDIENTS: Ingredient[] = DEFAULT_INGREDIENTS_LIST.map((n
     nutrition.dIso = 96; nutrition.ME = 6520; nutrition.CP = 65.5; price = 7;
   } else if (name.includes("أرجنين")) {
     nutrition.dArg = 96; nutrition.ME = 6360; nutrition.CP = 201.0; price = 9.25;
-  } else if (name.includes("كلسي") || name.includes("نحاته")) {
-    nutrition.Ca = 36; price = 0.04;
   } else if (name.includes("فوسفات")) {
     nutrition.Ca = 22; nutrition.avP = 16.5; price = 0.935;
   } else if (name.includes("ملح")) {

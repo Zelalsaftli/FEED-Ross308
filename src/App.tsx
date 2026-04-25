@@ -30,6 +30,7 @@ import {
   FlaskConical,
   Wind,
   Droplets,
+  CircleDot,
   Calculator as CalculatorIcon
 } from 'lucide-react';
 import { 
@@ -52,6 +53,7 @@ import {
   SBM_STANDARDS,
   CORN_STANDARDS,
   OIL_STANDARDS,
+  LIMESTONE_STANDARDS,
   ROSS_308_PHASES_3, 
   ROSS_308_PHASES_4, 
   ROSS_308_PHASES_5, 
@@ -1413,6 +1415,53 @@ export default function App() {
                       </div>
                     )}
 
+                    {ingredients.find(i => i.id === editingIngredientId)?.name.includes('كلسي') && (
+                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col gap-3">
+                        <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                          <CircleDot className="w-4 h-4" />
+                          اختر صنف الحجر الكلسي (تحميل التحليل القياسي):
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "الحجر الكلسي خام (36%)", nutrition: { ...ing.nutrition, ...LIMESTONE_STANDARDS["36"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-600 hover:text-white hover:border-slate-600 transition-all shadow-sm"
+                          >
+                            خام (36%)
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "الحجر الكلسي نقي (38.5%)", nutrition: { ...ing.nutrition, ...LIMESTONE_STANDARDS["38.5"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-600 hover:text-white hover:border-slate-600 transition-all shadow-sm"
+                          >
+                            نقي (38.5%)
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIngredients(prev => prev.map(ing => 
+                                ing.id === editingIngredientId 
+                                  ? { ...ing, name: "الحجر الكلسي أوروبي (40%)", nutrition: { ...ing.nutrition, ...LIMESTONE_STANDARDS["40"] } } 
+                                  : ing
+                              ));
+                            }}
+                            className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-600 hover:text-white hover:border-slate-600 transition-all shadow-sm"
+                          >
+                            أوروبي (40%)
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {ingredients.find(i => i.id === editingIngredientId)?.name.includes('زيت') && (
                       <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex flex-col gap-3">
                         <p className="text-sm font-bold text-blue-900 flex items-center gap-2">
@@ -2361,7 +2410,7 @@ export default function App() {
                             </thead>
                             <tbody className="divide-y divide-gray-50 font-mono">
                               {nutrientsToEdit.map(n => {
-                                const val = simulationResult.delta[n.key];
+                                const val = simulationResult.delta[n.key] || 0;
                                 if (Math.abs(val) < 0.0001) return null;
                                 return (
                                   <tr key={n.key}>
