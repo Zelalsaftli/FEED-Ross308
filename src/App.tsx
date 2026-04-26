@@ -7,6 +7,7 @@ import {
   CheckCircle2, 
   AlertCircle, 
   TrendingDown, 
+  TrendingUp,
   ChevronRight,
   Save,
   Trash2,
@@ -507,6 +508,37 @@ export default function App() {
     };
   }, [ingredients, simulatorSourceId, simulatorTargetId, simulatorAmount, actualNutrition, currentRequirement]);
 
+  /** 
+   * NEW: Nutrient Compliance Monitoring System
+   * Evaluates the mixture against CURRENT requirements (Phase + System)
+   */
+  const keyNutrientsToMonitor = useMemo(() => [
+    { key: 'ME', label: 'الطاقة الممثلة', tolerance: 50, u: 'kcal' },
+    { key: 'dLys', label: 'اللايسين المهضوم', tolerance: 0.02, u: '%' },
+    { key: 'dMetCys', label: 'ميثيونين+سيستين', tolerance: 0.02, u: '%' },
+    { key: 'dThr', label: 'الثريونين', tolerance: 0.02, u: '%' },
+    { key: 'dVal', label: 'الفالين', tolerance: 0.02, u: '%' },
+    { key: 'dIso', label: 'الآيزوليوسين', tolerance: 0.02, u: '%' },
+    { key: 'dArg', label: 'الأرجنين', tolerance: 0.02, u: '%' },
+    { key: 'Ca', label: 'الكالسيوم', tolerance: 0.03, u: '%' },
+    { key: 'avP', label: 'الفوسفور المتاح', tolerance: 0.02, u: '%' },
+  ], []);
+
+  const nutrientCompliance = useMemo(() => {
+    return keyNutrientsToMonitor.map(nut => {
+      const act = actualNutrition[nut.key as keyof Nutrition] || 0;
+      const targetStr = currentRequirement[nut.key as keyof typeof currentRequirement];
+      const target = parseFloat(targetStr) || 0;
+      const diff = act - target;
+      
+      let status: 'below' | 'balanced' | 'above' = 'balanced';
+      if (diff < -nut.tolerance) status = 'below';
+      else if (diff > nut.tolerance) status = 'above';
+
+      return { ...nut, act, target, diff, status };
+    });
+  }, [actualNutrition, currentRequirement, keyNutrientsToMonitor]);
+
   const handlePercentageChange = (id: string, value: string) => {
     setMixture(prev => prev.map(item => 
       item.ingredientId === id ? { ...item, percentage: value } : item
@@ -912,6 +944,56 @@ export default function App() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
+              {/* Nutrient Verification Monitor - Real-time during Entry */}
+              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-2 h-6 bg-green-600 rounded-full" />
+                  <h3 className="text-sm font-black text-gray-800">مراقب التوازن الغذائي اللحظي (المحقق مقابل الهدف)</h3>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-3">
+                  {nutrientCompliance.map((nut, idx) => {
+                    const colors = {
+                      below: 'border-red-200 bg-red-50 text-red-700',
+                      balanced: 'border-green-200 bg-green-50 text-green-700',
+                      above: 'border-amber-200 bg-amber-50 text-amber-700'
+                    };
+                    const statusLabel = {
+                      below: 'نقص',
+                      balanced: 'مثالي',
+                      above: 'زيادة'
+                    };
+
+                    return (
+                      <motion.div
+                        key={nut.key}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className={`flex flex-col items-center justify-between p-2 rounded-xl border transition-all ${colors[nut.status]} shadow-sm`}
+                      >
+                        <span className="text-[10px] font-bold text-center mb-1 leading-none">{nut.label}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-black font-mono">
+                            {nut.act.toFixed(nut.key === 'ME' ? 0 : 2)}
+                          </span>
+                        </div>
+                        <div className="w-full h-1 bg-black/5 rounded-full my-1 overflow-hidden">
+                          <div 
+                            style={{ width: `${Math.min(100, (nut.act / (nut.target || 1)) * 100)}%` }}
+                            className={`h-full ${nut.status === 'below' ? 'bg-red-500' : nut.status === 'above' ? 'bg-amber-500' : 'bg-green-500'}`}
+                          />
+                        </div>
+                        <span className="text-[8px] font-black uppercase opacity-60">الهدف: {nut.target.toFixed(nut.key === 'ME' ? 0 : 2)}</span>
+                        <div className={`mt-1 text-[8px] font-black px-1.5 py-0.5 rounded-full bg-white/50 border border-current`}>
+                          {statusLabel[nut.status]}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="flex flex-col lg:flex-row gap-6">
                 <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                   <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-4">
@@ -2066,7 +2148,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Energy & Minerals Table */}
               <section className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="px-8 py-6 bg-gray-50 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
                    <div className="flex items-center gap-3">
