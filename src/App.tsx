@@ -170,12 +170,36 @@ export default function App() {
 
   const [allCustomPhases, setAllCustomPhases] = useState<{3: PhaseRequirement[], 4: PhaseRequirement[], 5: PhaseRequirement[]}>(() => {
     const saved = localStorage.getItem('ross308_customPhases');
-    if (saved) return JSON.parse(saved);
-    return {
+    const defaults = {
       3: JSON.parse(JSON.stringify(ROSS_308_PHASES_3)),
       4: JSON.parse(JSON.stringify(ROSS_308_PHASES_4)),
       5: JSON.parse(JSON.stringify(ROSS_308_PHASES_5))
     };
+    
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Deep merge or at least ensure dMetCys exists
+        [3, 4, 5].forEach(count => {
+          if (parsed[count]) {
+            parsed[count] = parsed[count].map((p: PhaseRequirement, idx: number) => {
+              const defP = defaults[count as 3|4|5][idx] || defaults[count as 3|4|5][0];
+              return {
+                ...p,
+                nutrition: {
+                  ...defP.nutrition, // Start with defaults
+                  ...p.nutrition     // Overwrite with saved
+                }
+              };
+            });
+          }
+        });
+        return parsed;
+      } catch (e) {
+        console.error("Error parsing saved phases", e);
+      }
+    }
+    return defaults;
   });
   
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState<number>(0);
@@ -274,33 +298,41 @@ export default function App() {
     
     adjusted.ME = (parseFloat(baseRequirement.ME) + emOffset).toString();
     
-    // Amino Acid Strategy (+6% Lys, +4% Thr, +3% Met)
-    let lysFactor = 1.06;
-    let thrFactor = 1.04;
-    let metFactor = 1.03;
-
-    let finalLys = parseFloat(baseRequirement.dLys) * lysFactor;
+    // Amino Acid Strategy - Using engine values directly as they include heat and corn adjustments
+    adjusted.dLys = (parseFloat(baseRequirement.dLys) || 0).toFixed(3);
+    adjusted.dThr = (parseFloat(baseRequirement.dThr) || 0).toFixed(3);
     
-    // Corn Correction: SyrianCorn (-1.5% Lys) or UkrainianCorn (-0.5% Lys)
-    // Applied AFTER heat adjustment factor on the AA target
-    if (syrianModelSettings.cornType === 'Syrian') {
-      finalLys = finalLys * (1 - 0.015);
-    } else {
-      finalLys = finalLys * (1 - 0.005);
+    // User requested Met to stay at 0.55 for 5-phase OR follow table for 3-phase
+    adjusted.dMet = (parseFloat(baseRequirement.dMet) || 0.550).toFixed(3);
+    
+    // Explicitly handle dMetCys from engine with robust fallback
+    const rawVal = baseRequirement.dMetCys;
+    let dMetCysVal = parseFloat(rawVal);
+    
+    // If missing or truly 0 (which is unlikely for a requirement), try to pull from default constants as a safety net
+    if (isNaN(dMetCysVal) || dMetCysVal === 0) {
+      const fallbackSet = selectedPhaseCount === 3 ? ROSS_308_PHASES_3 : 
+                          selectedPhaseCount === 4 ? ROSS_308_PHASES_4 : 
+                          ROSS_308_PHASES_5;
+      const fallbackMetCys = fallbackSet[currentPhaseIndex]?.nutrition.dMetCys || 0.900;
+      dMetCysVal = parseFloat(fallbackMetCys);
     }
-
-    adjusted.dLys = finalLys.toFixed(3);
-    adjusted.dThr = (parseFloat(baseRequirement.dThr || "0") * thrFactor).toFixed(3);
-    adjusted.dMet = (parseFloat(baseRequirement.dMet || "0") * metFactor).toFixed(3);
-    adjusted.dMetCys = (parseFloat(baseRequirement.dMetCys || "0") * metFactor).toFixed(3);
     
-    // Minerals Strategy
-    adjusted.Ca = (parseFloat(baseRequirement.Ca) - 0.05).toFixed(3);
-    adjusted.avP = (parseFloat(baseRequirement.avP) - 0.03).toFixed(3);
+    adjusted.dMetCys = dMetCysVal.toFixed(3);
 
-    // Electrolytes Heat Correction: Na +0.02%, Cl -0.01%
-    adjusted.Na = (parseFloat(baseRequirement.Na || '0') + 0.02).toFixed(3);
-    adjusted.Cl = (parseFloat(baseRequirement.Cl || '0') - 0.01).toFixed(3);
+    adjusted.dCys = (parseFloat(baseRequirement.dCys) || 0).toFixed(3);
+    adjusted.dVal = (parseFloat(baseRequirement.dVal) || 0).toFixed(3);
+    adjusted.dIso = (parseFloat(baseRequirement.dIso) || 0).toFixed(3);
+    adjusted.dArg = (parseFloat(baseRequirement.dArg) || 0).toFixed(3);
+    adjusted.dTry = (parseFloat(baseRequirement.dTry) || 0).toFixed(3);
+    adjusted.dLeu = (parseFloat(baseRequirement.dLeu) || 0).toFixed(3);
+    adjusted.dGlySer = (parseFloat(baseRequirement.dGlySer) || 0).toFixed(3);
+    
+    // Minerals & Electrolytes Strategy - Use engine values directly
+    adjusted.Ca = (parseFloat(baseRequirement.Ca) || 0).toFixed(3);
+    adjusted.avP = (parseFloat(baseRequirement.avP) || 0).toFixed(3);
+    adjusted.Na = (parseFloat(baseRequirement.Na) || 0).toFixed(3);
+    adjusted.Cl = (parseFloat(baseRequirement.Cl) || 0).toFixed(3);
     
     return adjusted;
   }, [baseRequirement, isSummerStrategyActive, fiDropPercent, syrianModelSettings.cornType]);
@@ -707,6 +739,7 @@ export default function App() {
     { key: 'Na', label: 'Na' },
     { key: 'Cl', label: 'Cl' },
     { key: 'dLys', label: 'Lys' },
+    { key: 'dMet', label: 'Met' },
     { key: 'dMetCys', label: 'Met+Cys' },
     { key: 'dThr', label: 'Thr' },
     { key: 'K', label: 'Potassium (K %)' },

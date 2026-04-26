@@ -80,7 +80,12 @@ export class SyrianBroilerEngine {
   }
 
   // New: Function: Get EM Natural Phase Base Targets
-  private static get_EM_PhaseBaseTarget(phase: number): number {
+  private static get_EM_PhaseBaseTarget(phase: number, totalPhases: number = 5): number {
+    if (totalPhases === 3) {
+      if (phase === 1) return 2975;
+      if (phase === 2) return 3050;
+      return 3100;
+    }
     switch (phase) {
       case 1: return 2925;
       case 2: return 3000;
@@ -93,8 +98,8 @@ export class SyrianBroilerEngine {
   }
 
   // New: Function: Get EM Phase Target with Heat Adjustment
-  private static get_EM_PhaseTarget(phase: number, temp: number, heatCorr: boolean, humidity: number = 50): number {
-    const base = this.get_EM_PhaseBaseTarget(phase);
+  private static get_EM_PhaseTarget(phase: number, temp: number, heatCorr: boolean, humidity: number = 50, totalPhases: number = 5): number {
+    const base = this.get_EM_PhaseBaseTarget(phase, totalPhases);
     const hi = this.calculateHeatIndex(temp, humidity);
     if (heatCorr === true || hi >= 30) {
       return base + 25;
@@ -103,8 +108,8 @@ export class SyrianBroilerEngine {
   }
 
   // New: Function: Blend EM with FI Logic (Alpha = 0.4)
-  private static blend_EM_with_FI(phase: number, temp: number, heatCorr: boolean, EM_raw: number, humidity: number = 50): number {
-    const target = this.get_EM_PhaseTarget(phase, temp, heatCorr, humidity);
+  private static blend_EM_with_FI(phase: number, temp: number, heatCorr: boolean, EM_raw: number, humidity: number = 50, totalPhases: number = 5): number {
+    const target = this.get_EM_PhaseTarget(phase, temp, heatCorr, humidity, totalPhases);
     const alpha = 0.4;
     
     // Blend logic: EM_blended = EM_target + alpha * (EM_raw - EM_target)
@@ -120,60 +125,70 @@ export class SyrianBroilerEngine {
 
   // New: Function: Get AA Phase Base Targets (Brazilian style table)
   private static get_AA_PhaseBaseTargets(phase: number, totalPhases: number = 5) {
-    // Exact user specifications for dMetCys
-    let dMetCys = 0.90;
-    let dMet = 0.50; 
+    // 1. Determine local dMet and dMetCys based on Syrian specs
+    let dMetCysValue = 0.90;
+    let dMetValue = 0.55;
 
     if (totalPhases === 3) {
-      if (phase === 1) dMetCys = 1.00;
-      else if (phase === 2) dMetCys = 0.92;
-      else dMetCys = 0.86;
+      if (phase === 1) { 
+        dMetCysValue = 1.00; dMetValue = 0.55; 
+      } else if (phase === 2) { 
+        dMetCysValue = 0.92; dMetValue = 0.51; 
+      } else { 
+        dMetCysValue = 0.86; dMetValue = 0.48; 
+      }
     } else if (totalPhases === 4) {
-      if (phase === 1) dMetCys = 1.00;
-      else if (phase === 2) dMetCys = 0.92;
-      else if (phase === 3) dMetCys = 0.86;
-      else dMetCys = 0.82;
-    } else { // 5 phases (default)
-      if (phase === 1) dMetCys = 1.00;
-      else if (phase === 2) dMetCys = 0.96;
-      else if (phase === 3) dMetCys = 0.94;
-      else if (phase === 4) dMetCys = 0.90;
-      else dMetCys = 0.88;
+      if (phase === 1) dMetCysValue = 1.00;
+      else if (phase === 2) dMetCysValue = 0.92;
+      else if (phase === 3) dMetCysValue = 0.86;
+      else dMetCysValue = 0.82;
+      
+      // Met typically follows Lys trend if not fixed
+      if (phase === 1) dMetValue = 0.55;
+      else if (phase === 2) dMetValue = 0.51;
+      else if (phase === 3) dMetValue = 0.48;
+      else dMetValue = 0.45;
+    } else { // 5 phases
+      if (phase === 1) dMetCysValue = 1.00;
+      else if (phase === 2) dMetCysValue = 0.96;
+      else if (phase === 3) dMetCysValue = 0.94;
+      else if (phase === 4) dMetCysValue = 0.92;
+      else dMetCysValue = 0.89;
+      
+      dMetValue = 0.55; // User specifically asked to keep Met at 0.55 for Syrian field/5-phase
     }
 
-    // Set dMet as approx 55-60% of dMetCys if not provided specifically
-    dMet = parseFloat((dMetCys * 0.55).toFixed(3));
-
+    // 2. Return specific profiles (Brazilian base adjusted with Syrian Met/MetCys)
     switch (phase) {
       case 1:
         return {
-          dLys: 1.34, dMet, dMetCys, dThr: 0.88, dTrp: 0.24,
-          dArg: 1.45, dGlySer: 1.97, dVal: 1.03, dIle: 0.90, dLeu: 1.43
+          dLys: 1.34, dMet: dMetValue, dMetCys: dMetCysValue, dThr: 0.88, dTry: 0.24,
+          dArg: 1.45, dGlySer: 1.97, dVal: 1.03, dIso: 0.90, dLeu: 1.43
         };
       case 2:
         return {
-          dLys: 1.30, dMet, dMetCys, dThr: 0.86, dTrp: 0.23,
-          dArg: 1.40, dGlySer: 1.91, dVal: 1.00, dIle: 0.87, dLeu: 1.39
+          dLys: 1.30, dMet: dMetValue, dMetCys: dMetCysValue, dThr: 0.86, dTry: 0.23,
+          dArg: 1.40, dGlySer: 1.91, dVal: 1.00, dIso: 0.87, dLeu: 1.39
         };
       case 3:
         return {
-          dLys: 1.25, dMet, dMetCys, dThr: 0.83, dTrp: 0.23,
-          dArg: 1.34, dGlySer: 1.75, dVal: 0.96, dIle: 0.84, dLeu: 1.34
+          dLys: 1.25, dMet: dMetValue, dMetCys: dMetCysValue, dThr: 0.83, dTry: 0.23,
+          dArg: 1.34, dGlySer: 1.75, dVal: 0.96, dIso: 0.84, dLeu: 1.34
         };
       case 4:
         return {
-          dLys: 1.20, dMet, dMetCys, dThr: 0.79, dTrp: 0.22,
-          dArg: 1.28, dGlySer: 1.68, dVal: 0.92, dIle: 0.80, dLeu: 1.28
+          dLys: 1.20, dMet: dMetValue, dMetCys: dMetCysValue, dThr: 0.79, dTry: 0.22,
+          dArg: 1.28, dGlySer: 1.68, dVal: 0.92, dIso: 0.80, dLeu: 1.28
         };
       case 5:
         return {
-          dLys: 1.15, dMet, dMetCys, dThr: 0.76, dTrp: 0.21,
-          dArg: 1.21, dGlySer: 1.55, dVal: 0.89, dIle: 0.78, dLeu: 1.23
+          dLys: 1.15, dMet: dMetValue, dMetCys: dMetCysValue, dThr: 0.76, dTry: 0.21,
+          dArg: 1.21, dGlySer: 1.55, dVal: 0.89, dIso: 0.78, dLeu: 1.23
         };
       default:
         return {
-          dLys: 1.11, dMet, dMetCys, dThr: 0.73, dTrp: 0.20,
-          dArg: 1.16, dGlySer: 1.49, dVal: 0.85, dIle: 0.75, dLeu: 1.18
+          dLys: 1.11, dMet: dMetValue, dMetCys: dMetCysValue, dThr: 0.73, dTry: 0.20,
+          dArg: 1.16, dGlySer: 1.49, dVal: 0.85, dIso: 0.75, dLeu: 1.18
         };
     }
   }
@@ -184,17 +199,20 @@ export class SyrianBroilerEngine {
     const hi = this.calculateHeatIndex(temp, humidity);
     const factor = (heatCorr === true || hi >= 30) ? 1.02 : 1.00;
 
+    // For 3-phase system, we allow dMet to vary according to table.
+    // For 5-phase system, we still respect the "0.55 fixed" rule if it was requested.
+    // Let's use the base.dMet from the lookup table to be flexible.
     return {
       dLys: parseFloat((base.dLys * factor).toFixed(3)),
-      dMet: parseFloat((base.dMet * factor).toFixed(3)),
-      dCys: parseFloat(((base.dMetCys - base.dMet) * factor).toFixed(3)),
+      dMet: (totalPhases === 3) ? parseFloat((base.dMet * factor).toFixed(3)) : base.dMet, 
       dMetCys: parseFloat((base.dMetCys * factor).toFixed(3)),
+      dCys: parseFloat(((base.dMetCys * factor) - (totalPhases === 3 ? base.dMet * factor : base.dMet)).toFixed(3)),
       dThr: parseFloat((base.dThr * factor).toFixed(3)),
-      dTrp: parseFloat((base.dTrp * factor).toFixed(3)),
+      dTry: parseFloat((base.dTry * factor).toFixed(3)),
       dArg: parseFloat((base.dArg * factor).toFixed(3)),
       dGlySer: parseFloat((base.dGlySer * factor).toFixed(3)),
       dVal: parseFloat((base.dVal * factor).toFixed(3)),
-      dIle: parseFloat((base.dIle * factor).toFixed(3)),
+      dIso: parseFloat((base.dIso * factor).toFixed(3)),
       dLeu: parseFloat((base.dLeu * factor).toFixed(3)),
       dPhe: parseFloat((base.dLys * factor * AA_RATIOS.dPhe).toFixed(3)),
       dPheTyr: parseFloat((base.dLys * factor * AA_RATIOS.dPheTyr).toFixed(3))
@@ -202,14 +220,19 @@ export class SyrianBroilerEngine {
   }
 
   // New: Function: Get Ca-P Phase Targets
-  private static get_CaP_PhaseTargets(phase: number) {
+  private static get_CaP_PhaseTargets(phase: number, totalPhases: number = 5) {
+    if (totalPhases === 3) {
+      if (phase === 1) return { Ca: 0.95, avP: 0.50, CP: 23.0 };
+      if (phase === 2) return { Ca: 0.75, avP: 0.42, CP: 21.5 };
+      return { Ca: 0.65, avP: 0.36, CP: 19.5 };
+    }
     switch (phase) {
-      case 1: return { Ca: 1.10, avP: 0.55 };
-      case 2: return { Ca: 0.98, avP: 0.50 };
-      case 3: return { Ca: 0.78, avP: 0.42 };
-      case 4: return { Ca: 0.70, avP: 0.38 };
-      case 5: return { Ca: 0.65, avP: 0.36 };
-      default: return { Ca: 0.78, avP: 0.42 };
+      case 1: return { Ca: 1.10, avP: 0.55, CP: 23.0 };
+      case 2: return { Ca: 0.98, avP: 0.50, CP: 22.0 };
+      case 3: return { Ca: 0.78, avP: 0.42, CP: 21.0 };
+      case 4: return { Ca: 0.70, avP: 0.38, CP: 20.0 };
+      case 5: return { Ca: 0.65, avP: 0.36, CP: 19.0 };
+      default: return { Ca: 0.78, avP: 0.42, CP: 21.0 };
     }
   }
 
@@ -434,13 +457,13 @@ export class SyrianBroilerEngine {
     emTarget = cornAdj.em;
 
     // Apply Energy Adjustment Layer (Blending + Phase Band)
-    emTarget = this.blend_EM_with_FI(phase, settings.temperature, settings.heatCorrection, emTarget, settings.humidity);
+    emTarget = this.blend_EM_with_FI(phase, settings.temperature, settings.heatCorrection, emTarget, settings.humidity, settings.totalPhases || 5);
 
     // Amino Acid Target Layer
     const AA_targets = this.get_AA_PhaseTargets(phase, settings.temperature, settings.heatCorrection, settings.humidity, settings.totalPhases || 5);
     
     // Static Ca-P and Electrolyte Targets
-    const CaP_targets = this.get_CaP_PhaseTargets(phase);
+    const CaP_targets = this.get_CaP_PhaseTargets(phase, settings.totalPhases || 5);
     const Electro_targets = this.get_Electrolytes_PhaseTargets(phase, settings.temperature, settings.heatCorrection, settings.humidity);
 
     // Apply Corn Correction to Lysine specifically
@@ -452,6 +475,11 @@ export class SyrianBroilerEngine {
     }
 
     const { Crude_Protein_percent, Digestible_Protein_percent } = this.get_Protein(sidLysFinal);
+    // CP override from Ross table if 3rd phase
+    const finalCP = (settings.totalPhases === 3) ? CaP_targets.CP : Crude_Protein_percent;
+
+    // Use ratio-based fallback for missing amino acids
+    const dHisValue = parseFloat((sidLysFinal * (AA_RATIOS.dMet / 0.38) * 0.35).toFixed(3)); // Approximation if missing
 
     const nutrition: Nutrition = {
       ME: Math.round(emTarget),
@@ -461,11 +489,12 @@ export class SyrianBroilerEngine {
       dMetCys: AA_targets.dMetCys,
       dThr: AA_targets.dThr,
       dVal: AA_targets.dVal,
-      dIso: AA_targets.dIle,
+      dIso: AA_targets.dIso,
       dArg: AA_targets.dArg,
-      dTry: AA_targets.dTrp,
+      dTry: AA_targets.dTry,
       dGlySer: AA_targets.dGlySer,
       dLeu: AA_targets.dLeu,
+      dHis: dHisValue,
       dPhe: AA_targets.dPhe,
       dPheTyr: AA_targets.dPheTyr,
       Ca: CaP_targets.Ca,
@@ -474,7 +503,7 @@ export class SyrianBroilerEngine {
       K: Electro_targets.K,
       Cl: Electro_targets.Cl,
       DEB: Electro_targets.DEB,
-      CP: Crude_Protein_percent,
+      CP: finalCP,
       dCP: Digestible_Protein_percent,
       choline: phase < 3 ? 1500 : 1200,
       choline_g: phase < 3 ? 1.5 : 1.2,

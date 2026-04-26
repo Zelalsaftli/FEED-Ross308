@@ -400,7 +400,7 @@ export const ROSS_308_PHASES_5: PhaseRequirement[] = [
     days: "28–35 d",
     nutrition: {
       ME: 3076.09, CP: 20.62, Ca: 0.64, avP: 0.31, Na: 0.19, Cl: 0.17,
-      dLys: 1.13, dMet: 0.50, dMetCys: 0.90, dThr: 0.75, dTry: 0.22, dArg: 1.21,
+      dLys: 1.13, dMet: 0.50, dMetCys: 0.92, dThr: 0.75, dTry: 0.22, dArg: 1.21,
       dGlySer: 1.58, dVal: 0.87, dIso: 0.76, dLeu: 1.21, dHis: 0.71,
       dPhe: 0.71, dPheTyr: 1.32, choline: 1450, K: 0.75
     }
@@ -410,7 +410,7 @@ export const ROSS_308_PHASES_5: PhaseRequirement[] = [
     days: "36–42 d",
     nutrition: {
       ME: 3120.00, CP: 19.93, Ca: 0.60, avP: 0.28, Na: 0.19, Cl: 0.17,
-      dLys: 1.10, dMet: 0.48, dMetCys: 0.88, dThr: 0.73, dTry: 0.20, dArg: 1.16,
+      dLys: 1.10, dMet: 0.48, dMetCys: 0.89, dThr: 0.73, dTry: 0.20, dArg: 1.16,
       dGlySer: 1.49, dVal: 0.85, dIso: 0.75, dLeu: 1.19, dHis: 0.69,
       dPhe: 0.69, dPheTyr: 1.27, choline: 1450, K: 0.75
     }
