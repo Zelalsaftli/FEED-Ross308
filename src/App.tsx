@@ -77,7 +77,7 @@ import {
 import PhytaseCalculator from './components/PhytaseCalculator';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives' | 'performance' | 'simulator' | 'regression' | 'summer' | 'phytase'>('mixture');
+  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives' | 'performance' | 'simulator' | 'regression' | 'summer' | 'phytase' | 'matrix'>('mixture');
   const [selectedPerformanceDay, setSelectedPerformanceDay] = useState<number>(0);
   const [temperature, setTemperature] = useState<number>(33);
   const [humidity, setHumidity] = useState<number>(55);
@@ -867,10 +867,17 @@ export default function App() {
             </button>
             <button 
               onClick={() => setActiveTab('nutrition')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === 'nutrition' ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === 'nutrition' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
             >
-              <Settings className="w-4 h-4" />
-              تعديل المكونات
+              <FileText className="w-4 h-4" />
+              احتياجات السلالة
+            </button>
+            <button 
+              onClick={() => setActiveTab('matrix')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === 'matrix' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              <Database className="w-4 h-4" />
+              مصفوفة المكونات (Matrix)
             </button>
             <button 
               onClick={() => setActiveTab('results')}
@@ -1150,6 +1157,59 @@ export default function App() {
                           <Plus className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </button>
                       ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex flex-col gap-4">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                      <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-indigo-600" />
+                        نظرة على المحقق
+                      </h3>
+                      <button 
+                        onClick={() => setActiveTab('results')}
+                        className="text-[10px] font-bold text-indigo-600 hover:underline"
+                      >
+                        التفاصيل الكاملة
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {[
+                        { k: 'ME', l: 'الطاقة', u: 'kcal' },
+                        { k: 'CP', l: 'بروتين', u: '%' },
+                        { k: 'dLys', l: 'لايسين', u: '%' },
+                        { k: 'Ca', l: 'كلس', u: '%' },
+                        { k: 'avP', l: 'فوسفور', u: '%' },
+                      ].map(({ k, l, u }) => {
+                        const act = actualNutrition[k as keyof Nutrition] || 0;
+                        const req = parseFloat(currentRequirement[k as keyof Nutrition]) || 0;
+                        const percent = req > 0 ? (act / req) * 100 : 0;
+                        const colorClass = percent >= 98 && percent <= 102 ? 'bg-green-500' : percent < 98 ? 'bg-amber-500' : 'bg-red-500';
+                        
+                        return (
+                          <div key={k} className="space-y-1">
+                            <div className="flex justify-between text-[10px] font-bold">
+                              <span className="text-gray-600">{l} <span className="text-gray-400 font-mono text-[9px]">({u})</span></span>
+                              <span className={percent >= 98 && percent <= 102 ? 'text-green-600' : percent < 98 ? 'text-amber-600' : 'text-red-600'}>
+                                {act.toFixed(k === 'ME' ? 0 : 2)} / {req.toFixed(k === 'ME' ? 0 : 2)}
+                              </span>
+                            </div>
+                            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden shadow-inner flex">
+                              <div 
+                                className={`h-full transition-all duration-500 ${colorClass}`}
+                                style={{ width: `${Math.min(percent, 100)}%` }}
+                              />
+                              {percent > 100 && (
+                                <div 
+                                  className="h-full bg-red-400"
+                                  style={{ width: `${Math.min(percent - 100, 20)}%` }}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1458,48 +1518,73 @@ export default function App() {
             </motion.div>
           )}
 
-          {activeTab === 'nutrition' && (
+          {activeTab === 'matrix' && (
             <motion.div
-              key="nutrition"
+              key="matrix"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               className="grid grid-cols-1 md:grid-cols-3 gap-8"
             >
-              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden h-[calc(100vh-12rem)] sticky top-24">
-                <div className="p-4 bg-gray-50 border-b border-gray-200 font-bold flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs">
-                    <Settings className="w-4 h-4 text-gray-500" />
-                    قائمة المكونات
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={zeroEnzymeMatrix}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-[10px] font-black border border-amber-200 hover:bg-amber-100 transition-all uppercase tracking-tighter"
-                      title="تصفير مصفوفة الإنزيمات"
-                    >
-                      <Wind className="w-3 h-3" />
-                      تصفير مصفوفة
-                    </button>
-                    <button 
-                      onClick={resetAllIngredientsToDefault}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black border border-blue-200 hover:bg-blue-100 transition-all uppercase tracking-tighter"
-                      title="إعادة ضبط الكل للافتراضي"
-                    >
-                      <RefreshCcw className="w-3 h-3" />
-                      إعادة ضبط الكل
-                    </button>
+              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden h-[calc(100vh-12rem)] sticky top-24 shadow-lg">
+                <div className="p-4 bg-gray-50 border-b border-gray-200 font-bold">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-blue-800">
+                        <Database className="w-5 h-5" />
+                        مصفوفة المكونات
+                      </div>
+                      <button 
+                        onClick={() => {
+                          const newId = `custom-ing-${Date.now()}`;
+                          const newIng: Ingredient = {
+                            id: newId,
+                            name: "مكون جديد",
+                            nutrition: { ...INITIAL_NUTRITION },
+                            price: 0
+                          };
+                          setIngredients(prev => [...prev, newIng]);
+                          setEditingIngredientId(newId);
+                        }}
+                        className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-sm"
+                        title="إضافة مكون جديد"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    <div className="relative">
+                      <Settings className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input 
+                        type="text"
+                        placeholder="بحث في المكونات..."
+                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 pr-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        onChange={(e) => {
+                          const term = e.target.value.toLowerCase();
+                          const buttons = document.querySelectorAll('.ing-matrix-item');
+                          buttons.forEach(btn => {
+                            const name = btn.getAttribute('data-name')?.toLowerCase() || '';
+                            (btn as HTMLElement).style.display = name.includes(term) ? 'flex' : 'none';
+                          });
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="overflow-y-auto h-full pb-20">
+                
+                <div className="overflow-y-auto h-full pb-32">
                   {ingredients.map((ing) => (
                     <button
                       key={ing.id}
+                      data-name={ing.name}
                       onClick={() => setEditingIngredientId(ing.id)}
-                      className={`w-full px-6 py-4 text-right border-b border-gray-50 transition-all flex items-center justify-between hover:bg-gray-50 ${editingIngredientId === ing.id ? 'bg-green-50 border-r-4 border-r-green-600' : ''}`}
+                      className={`ing-matrix-item w-full px-6 py-4 text-right border-b border-gray-50 transition-all flex items-center justify-between hover:bg-blue-50 ${editingIngredientId === ing.id ? 'bg-blue-50 border-r-4 border-r-blue-600' : ''}`}
                     >
-                      <span className={`text-sm font-medium ${editingIngredientId === ing.id ? 'text-green-700' : 'text-gray-700'}`}>{ing.name}</span>
-                      <ChevronRight className={`w-4 h-4 transform rotate-180 ${editingIngredientId === ing.id ? 'text-green-600' : 'text-gray-300'}`} />
+                      <div className="flex flex-col items-start text-right">
+                        <span className={`text-sm font-bold ${editingIngredientId === ing.id ? 'text-blue-700' : 'text-gray-700'}`}>{ing.name}</span>
+                        <span className="text-[10px] text-gray-400 font-mono">ID: {ing.id}</span>
+                      </div>
+                      <ChevronRight className={`w-4 h-4 transform rotate-180 ${editingIngredientId === ing.id ? 'text-blue-600' : 'text-gray-300'}`} />
                     </button>
                   ))}
                 </div>
@@ -1507,19 +1592,36 @@ export default function App() {
 
               <div className="md:col-span-2">
                 {editingIngredientId ? (
-                  <div className="bg-white border border-gray-200 rounded-2xl p-8 space-y-8">
+                  <div className="bg-white border border-gray-200 rounded-3xl p-8 space-y-8 shadow-sm">
                     <div className="flex items-center justify-between border-b border-gray-100 pb-6">
-                      <div>
-                        <h2 className="text-2xl font-bold text-gray-900">{ingredients.find(i => i.id === editingIngredientId)?.name}</h2>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {ingredients.find(i => i.id === editingIngredientId)?.name.includes('أنزيم') 
-                            ? 'إدخال المصفوفة الغذائية (Matrix) لكل 1 كغ إنزيم خالص.' 
-                            : 'تعديل قيم التحليل الكيميائي والغذائي لكل 1 كغ من هذا المكون.'}
-                        </p>
+                      <div className="flex items-center gap-4">
+                        <div className="p-4 bg-blue-50 rounded-2xl text-blue-600">
+                          <Beaker className="w-8 h-8" />
+                        </div>
+                        <div>
+                          <input 
+                            className="text-2xl font-black text-gray-900 bg-transparent border-b border-dashed border-gray-200 focus:border-blue-500 outline-none w-full"
+                            value={ingredients.find(i => i.id === editingIngredientId)?.name || ''}
+                            onChange={(e) => {
+                              const newName = e.target.value;
+                              setIngredients(prev => prev.map(ing => ing.id === editingIngredientId ? { ...ing, name: newName } : ing));
+                            }}
+                          />
+                          <p className="text-sm text-gray-500 mt-1">تعديل قيم التحليل المخبري والمحتوى الغذائي</p>
+                        </div>
                       </div>
-                      <div className="p-3 bg-blue-50 rounded-xl text-blue-700">
-                        <Save className="w-6 h-6" />
-                      </div>
+                      <button 
+                        onClick={() => {
+                          if (window.confirm('هل تريد حذف هذا المكون نهائياً؟')) {
+                            setIngredients(prev => prev.filter(i => i.id !== editingIngredientId));
+                            setEditingIngredientId(null);
+                          }
+                        }}
+                        className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                        title="حذف المكون"
+                      >
+                        <Trash2 className="w-6 h-6" />
+                      </button>
                     </div>
 
                   <div className="space-y-6">
@@ -2000,26 +2102,66 @@ export default function App() {
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {nutrientsToEdit.map(({ key, label }) => (
-                        <div key={key} className="space-y-2">
-                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">{label}</label>
-                          <div className="relative">
-                            <input 
-                              type="text"
-                              inputMode="decimal"
-                              value={ingredients.find(i => i.id === editingIngredientId)?.nutrition[key] ?? ''}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                  updateIngredientNutrition(editingIngredientId, key, val);
-                                }
-                              }}
-                              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-mono text-lg transition-all focus:bg-white focus:ring-2 focus:ring-green-500 outline-none pr-12 text-right"
-                            />
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400 bg-white px-2 py-1 rounded-md border border-gray-100 uppercase">
-                              / 1kg
-                            </div>
+                    <div className="space-y-12">
+                      {[
+                        { 
+                          title: "الطاقة والبروتين (Energy & Protein)", 
+                          icon: <Zap className="w-5 h-5 text-orange-500" />,
+                          keys: ['ME', 'CP', 'DM', 'NetEnergy'] 
+                        },
+                        { 
+                          title: "الأحماض الأمينية المهضومة (Digestible Amino Acids)", 
+                          icon: <Activity className="w-5 h-5 text-green-500" />,
+                          keys: ['dLys', 'dMet', 'dMetCys', 'dThr', 'dVal', 'dIso', 'dArg', 'dTry', 'dLeu', 'dHis', 'dGlySer', 'dPhe', 'dPheTyr'] 
+                        },
+                        { 
+                          title: "المعادن والأملاح (Minerals & Salts)", 
+                          icon: <Scale className="w-5 h-5 text-blue-500" />,
+                          keys: ['Ca', 'avP', 'TotalP', 'Na', 'K', 'Cl', 'PhytateP'] 
+                        },
+                        { 
+                          title: "الألياف والدهون (Fibers & Fats)", 
+                          icon: <Droplets className="w-5 h-5 text-amber-500" />,
+                          keys: ['EE', 'Fiber', 'Starch', 'ADF', 'NDF'] 
+                        },
+                        { 
+                          title: "أخرى (Other)", 
+                          icon: <Info className="w-5 h-5 text-gray-500" />,
+                          keys: ['choline', 'dAla', 'dCys', 'dTyr', 'dGly', 'dSer'] 
+                        }
+                      ].map((group) => (
+                        <div key={group.title} className="space-y-4">
+                          <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
+                            {group.icon}
+                            <h3 className="text-sm font-black text-gray-800 uppercase tracking-tight">{group.title}</h3>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {group.keys.map(key => {
+                              const nutrientDef = nutrientsToEdit.find(n => n.key === key);
+                              if (!nutrientDef) return null;
+                              return (
+                                <div key={key} className="space-y-2">
+                                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">{nutrientDef.label}</label>
+                                  <div className="relative group">
+                                    <input 
+                                      type="text"
+                                      inputMode="decimal"
+                                      value={ingredients.find(i => i.id === editingIngredientId)?.nutrition[key as keyof Nutrition] ?? ''}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                          updateIngredientNutrition(editingIngredientId, key as keyof Nutrition, val);
+                                        }
+                                      }}
+                                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-mono text-lg transition-all focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none pr-12 text-right group-hover:border-blue-200"
+                                    />
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400 bg-white px-2 py-1 rounded-md border border-gray-100 uppercase transition-all group-focus-within:text-blue-500">
+                                      / 1kg
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       ))}
@@ -2046,6 +2188,7 @@ export default function App() {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-8 pb-20"
             >
+              {/* Syrian Model Control remains here as it's a dynamic toggle */}
               <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8 mb-8">
                 <h3 className="text-lg font-bold mb-6 flex items-center gap-2 border-r-4 border-green-600 pr-3">
                    إعدادات النموذج السوري (Syrian Model Control)
@@ -2096,55 +2239,34 @@ export default function App() {
                    </div>
                 </div>
               </div>
-              {/* Phase Selection (Consolidated here) */}
-              <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 flex flex-col md:flex-row items-center gap-6 mb-8">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-bold text-blue-900">نظام التغذية والمرحلة</h3>
-                    <div className="flex gap-2">
-                       <button 
-                         onClick={resetRequirementsToDefault}
-                         className="px-3 py-1 bg-white/50 text-blue-700 rounded-lg text-[10px] font-bold hover:bg-white transition-all flex items-center gap-1 border border-blue-200"
-                       >
-                         <Trash2 className="w-3 h-3" />
-                         استعادة دليل Ross 308
-                       </button>
-                       <button 
-                         onClick={applySyrianModel}
-                         className="px-3 py-1 bg-green-600 text-white rounded-lg text-[10px] font-bold hover:bg-green-700 transition-all flex items-center gap-1 shadow-sm"
-                       >
-                         <Beaker className="w-3 h-3" />
-                         تطبيق النموذج السوري v1.0
-                       </button>
-                    </div>
+
+              {/* Requirement Summary (Read Only here, edit in Requirements tab) */}
+              <div className="bg-indigo-600 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 mb-8 text-white shadow-xl shadow-indigo-200">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 bg-white/20 rounded-2xl">
+                    <FileText className="w-8 h-8" />
                   </div>
-                  <p className="text-sm text-blue-700">اختر عدد المراحل والمرحلة الحالية للمقارنة الدقيقة.</p>
+                  <div>
+                    <h3 className="text-xl font-black">{availablePhases[currentPhaseIndex]?.name}</h3>
+                    <p className="text-indigo-100 text-sm">نظام الـ {selectedPhaseCount} مراحل | العمر: {availablePhases[currentPhaseIndex]?.days}</p>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-4 items-center">
-                  <div className="flex gap-1 bg-white p-1 rounded-lg border border-blue-200">
-                    {[3, 4, 5].map(n => (
-                      <button
-                        key={n}
-                        onClick={() => {
-                          setSelectedPhaseCount(n);
-                          setCurrentPhaseIndex(0);
-                        }}
-                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${selectedPhaseCount === n ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                      >
-                        {n} مراحل
-                      </button>
-                    ))}
+                <div className="flex gap-4">
+                  <div className="bg-white/10 px-6 py-4 rounded-2xl border border-white/20 text-center">
+                    <p className="text-[10px] font-bold uppercase opacity-60 mb-1">الهدف (الطاقة)</p>
+                    <p className="text-2xl font-black">{currentRequirement.ME} <span className="text-sm font-normal">kcal</span></p>
                   </div>
-                  <div className="h-8 w-px bg-blue-200 hidden md:block"></div>
-                  <select 
-                    value={currentPhaseIndex}
-                    onChange={(e) => setCurrentPhaseIndex(parseInt(e.target.value))}
-                    className="bg-white border border-blue-200 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  <div className="bg-white/10 px-6 py-4 rounded-2xl border border-white/20 text-center">
+                    <p className="text-[10px] font-bold uppercase opacity-60 mb-1">الهدف (اللايسين)</p>
+                    <p className="text-2xl font-black">{currentRequirement.dLys}%</p>
+                  </div>
+                  <button 
+                    onClick={() => setActiveTab('nutrition')}
+                    className="bg-white text-indigo-600 px-6 py-4 rounded-2xl font-bold hover:bg-indigo-50 transition-all flex items-center gap-2"
                   >
-                    {availablePhases.map((p, idx) => (
-                      <option key={idx} value={idx}>{p.name} ({p.days})</option>
-                    ))}
-                  </select>
+                    تعديل الأهداف
+                    <ChevronRight className="w-5 h-5 transform rotate-180" />
+                  </button>
                 </div>
               </div>
 
@@ -2165,10 +2287,10 @@ export default function App() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-100">
-                        <th className="px-8 py-4 text-right">العنصر</th>
-                        <th className="px-8 py-4 text-center">الاحتياج المطلوب</th>
-                        <th className="px-8 py-4 text-center">المتحقق</th>
-                        <th className="px-8 py-4 text-center">الفرق</th>
+                        <th className="px-8 py-4 text-right border-l border-gray-50">العنصر</th>
+                        <th className="px-8 py-4 text-center">الهدف المطلوب</th>
+                        <th className="px-8 py-4 text-center">المتحقق الفعلي</th>
+                        <th className="px-8 py-4 text-center">الفرق (+/-)</th>
                         <th className="px-8 py-4 text-center">التقييم</th>
                       </tr>
                     </thead>
@@ -2178,9 +2300,9 @@ export default function App() {
                         { k: 'CP', l: 'بروتين خام (CP)', u: '%' },
                         { k: 'Ca', l: 'كالسيوم (Ca)', u: '%' },
                         { k: 'avP', l: 'فوسفور متاح (av.P)', u: '%' },
-                        { k: 'K', l: 'بوتاسيوم (K)', u: '%' },
                         { k: 'Na', l: 'صوديوم (Na)', u: '%' },
                         { k: 'Cl', l: 'كلور (Cl)', u: '%' },
+                        { k: 'K', l: 'بوتاسيوم (K)', u: '%' },
                         { k: 'choline', l: 'الكولين (mg/kg)', u: 'mg' },
                       ].map(({ k, l, u }) => {
                         const key = k as keyof Nutrition;
@@ -2191,30 +2313,17 @@ export default function App() {
                         const evalRes = getEvaluation(act, req);
                         return (
                           <tr key={k} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-8 py-4">
+                            <td className="px-8 py-4 border-l border-gray-50">
                               <span className="font-bold text-gray-800">{l}</span>
                               <span className="text-[10px] text-gray-400 mr-2 uppercase">{u}</span>
                             </td>
-                            <td className="px-8 py-4 text-center">
-                              <input 
-                                type="text"
-                                inputMode="decimal"
-                                value={req ?? ''}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                    updateRequirementValue(key, val);
-                                  }
-                                }}
-                                className="w-24 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-center font-mono font-bold text-gray-700 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
-                              />
-                            </td>
-                            <td className="px-8 py-4 text-center font-mono font-bold text-blue-700">{act.toFixed(k === 'ME' || k === 'choline' ? 0 : 2)}</td>
-                            <td className={`px-8 py-4 text-center font-mono ${diff >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            <td className="px-8 py-4 text-center font-mono font-black text-gray-400">{reqNum}</td>
+                            <td className="px-8 py-4 text-center font-mono font-bold text-blue-700 text-lg">{act.toFixed(k === 'ME' || k === 'choline' ? 0 : 2)}</td>
+                            <td className={`px-8 py-4 text-center font-mono font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                               {diff > 0 ? '+' : ''}{diff.toFixed(k === 'ME' || k === 'choline' ? 0 : 2)}
                             </td>
                             <td className="px-8 py-4 text-center">
-                              <span className={`px-3 py-1 rounded-full text-xs font-bold bg-white border border-gray-100 shadow-sm ${evalRes.color}`}>
+                              <span className={`px-4 py-1 rounded-full text-xs font-black shadow-sm ${evalRes.color} uppercase tracking-tighter`}>
                                 {evalRes.label}
                               </span>
                             </td>
@@ -2272,31 +2381,18 @@ export default function App() {
                         const diff = act - reqNum;
                         const evalRes = getEvaluation(act, req);
                         return (
-                          <tr key={k} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-8 py-4">
+                          <tr key={k} className="hover:bg-gray-50 transition-colors text-[13px]">
+                            <td className="px-8 py-3 border-l border-gray-50">
                               <span className="font-bold text-gray-800">{l}</span>
-                              <span className="text-[10px] text-gray-400 mr-2 uppercase">%</span>
+                              <span className="text-[10px] text-gray-400 mr-2 uppercase block sm:inline">%</span>
                             </td>
-                            <td className="px-8 py-4 text-center">
-                              <input 
-                                type="text"
-                                inputMode="decimal"
-                                value={req ?? ''}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                    updateRequirementValue(key, val);
-                                  }
-                                }}
-                                className="w-24 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-center font-mono font-bold text-gray-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
-                              />
+                            <td className="px-8 py-3 text-center font-mono font-black text-gray-400">{(parseFloat(req) || 0).toFixed(3)}%</td>
+                            <td className="px-8 py-3 text-center font-mono font-black text-indigo-700 text-lg">{act.toFixed(3)}%</td>
+                            <td className={`px-8 py-3 text-center font-mono font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                              {diff > 0 ? '+' : ''}{diff.toFixed(3)}%
                             </td>
-                            <td className="px-8 py-4 text-center font-mono font-bold text-indigo-700">{act.toFixed(3)}</td>
-                            <td className={`px-8 py-4 text-center font-mono ${diff >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                              {diff > 0 ? '+' : ''}{diff.toFixed(3)}
-                            </td>
-                            <td className="px-8 py-4 text-center">
-                              <span className={`px-3 py-1 rounded-full text-xs font-bold bg-white border border-gray-100 shadow-sm ${evalRes.color}`}>
+                            <td className="px-8 py-3 text-center">
+                              <span className={`px-4 py-1 rounded-full text-[10px] font-black shadow-sm ${evalRes.color} uppercase tracking-tighter`}>
                                 {evalRes.label}
                               </span>
                             </td>
