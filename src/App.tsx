@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Fragment } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Calculator, 
@@ -12,6 +12,8 @@ import {
   Save,
   Trash2,
   Plus,
+  Package,
+  ListChecks,
   DollarSign,
   Scale,
   Printer,
@@ -37,14 +39,9 @@ import {
   Calculator as CalculatorIcon
 } from 'lucide-react';
 import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
 import GrowthEngineTool from './components/GrowthEngineTool';
 import RegressionEngineTool from './components/RegressionEngineTool';
@@ -77,7 +74,7 @@ import {
 import PhytaseCalculator from './components/PhytaseCalculator';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives' | 'performance' | 'simulator' | 'regression' | 'summer' | 'phytase' | 'matrix'>('mixture');
+  const [activeTab, setActiveTab] = useState<'mixture' | 'nutrition' | 'results' | 'compare' | 'additives' | 'performance' | 'simulator' | 'regression' | 'summer' | 'phytase' | 'matrix' | 'premix'>('mixture');
   const [selectedPerformanceDay, setSelectedPerformanceDay] = useState<number>(0);
   const [temperature, setTemperature] = useState<number>(33);
   const [humidity, setHumidity] = useState<number>(55);
@@ -832,8 +829,39 @@ export default function App() {
     }));
   };
 
+  const radarData = [
+    { name: 'الطاقة', target: 100, actual: Math.min(120, ((actualNutrition.ME || 0) / (parseFloat(currentRequirement.ME) || 1)) * 100) },
+    { name: 'البروتين', target: 100, actual: Math.min(120, ((actualNutrition.CP || 0) / (parseFloat(currentRequirement.CP) || 1)) * 100) },
+    { name: 'اللايسين', target: 100, actual: Math.min(120, ((actualNutrition.dLys || 0) / (parseFloat(currentRequirement.dLys) || 1)) * 100) },
+    { name: 'م+س', target: 100, actual: Math.min(120, ((actualNutrition.dMetCys || 0) / (parseFloat(currentRequirement.dMetCys) || 1)) * 100) },
+    { name: 'الكالسيوم', target: 100, actual: Math.min(120, ((actualNutrition.Ca || 0) / (parseFloat(currentRequirement.Ca) || 1)) * 100) },
+    { name: 'الفوسفور', target: 100, actual: Math.min(120, ((actualNutrition.avP || 0) / (parseFloat(currentRequirement.avP) || 1)) * 100) },
+  ];
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const getIngredientCategory = (name: string): string => {
+    const n = name.toLowerCase();
+    if (n.includes('ذرة') || n.includes('corn') || n.includes('صويا') || n.includes('soy') || n.includes('كسبة') || n.includes('قمح') || n.includes('نخالة')) return 'مواد علفية أساسية (Bulk)';
+    if (n.includes('زيت') || n.includes('oil') || n.includes('دهن')) return 'زيوت ودهون (Oils & Fats)';
+    if (n.includes('كلس') || n.includes('فوسفات') || n.includes('ملح') || n.includes('صودا') || n.includes('dcp') || n.includes('monocalcium')) return 'معادن وأملاح (Minerals)';
+    if (n.includes('أنزيم') || n.includes('حمض') || n.includes('فيتامين') || n.includes('مضاد') || n.includes('تكس') || n.includes('كوكس') || n.includes('ميثيونين') || n.includes('لايسين') || n.includes('ثريونين') || n.includes('بريمكس')) return 'إضافات وبريمكسات (Additives)';
+    return 'أخرى (Other)';
+  };
+
   return (
-    <div className="min-h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans rtl" dir="rtl">
+    <div className="min-h-screen bg-[#F8FAFC] text-right" dir="rtl">
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+          body { background: white !important; padding: 0 !important; }
+          .shadow-sm, .shadow-xl, .shadow-lg, .shadow-md { box-shadow: none !important; border: 1px solid #eee !important; }
+          .rounded-3xl, .rounded-2xl { border-radius: 8px !important; }
+        }
+      `}</style>
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -871,6 +899,13 @@ export default function App() {
             >
               <FileText className="w-4 h-4" />
               احتياجات السلالة
+            </button>
+            <button 
+              onClick={() => setActiveTab('premix')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab === 'premix' ? 'bg-amber-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              <Package className="w-4 h-4" />
+              حاسبة البريمكس
             </button>
             <button 
               onClick={() => setActiveTab('matrix')}
@@ -1070,68 +1105,87 @@ export default function App() {
                             </td>
                           </tr>
                         ) : (
-                          activeIngredients.map((ing) => {
-                            const mixItem = mixture.find(m => m.ingredientId === ing.id);
-                            return (
-                              <tr key={ing.id} className="hover:bg-gray-50 transition-colors group border-b border-gray-50">
-                                <td className="px-6 py-4 font-bold text-gray-800 sticky right-0 bg-white group-hover:bg-gray-50 z-10">
-                                  <input 
-                                    type="text"
-                                    value={ing.name}
-                                    onChange={(e) => setIngredients(prev => prev.map(i => i.id === ing.id ? { ...i, name: e.target.value } : i))}
-                                    className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none hover:bg-gray-100 rounded px-2 py-1 transition-colors"
-                                  />
-                                </td>
-                                <td className="px-4 py-4 text-center border-x border-gray-50">
-                                  <input 
-                                    type="text"
-                                    inputMode="decimal"
-                                    value={mixItem?.percentage ?? ''}
-                                    placeholder="0"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                        handlePercentageChange(ing.id, val);
-                                      }
-                                    }}
-                                    className="w-24 bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-center font-bold text-gray-900 focus:ring-2 focus:ring-green-500 outline-none shadow-sm"
-                                  />
-                                </td>
-                                <td className="px-4 py-4 text-center font-mono font-bold text-blue-700 bg-blue-50/20 border-x border-gray-50">
-                                  {((parseFloat(mixItem?.percentage || '0') || 0) * 10).toFixed(2)} كغ
-                                </td>
-                                <td className="px-4 py-4 text-center font-mono font-bold text-indigo-700 bg-indigo-50/20 border-x border-gray-50">
-                                  {((parseFloat(mixItem?.percentage || '0') || 0) * 10 * batchSize).toFixed(2)} كغ
-                                </td>
-                                <td className="px-4 py-4 text-center">
-                                  <input 
-                                    type="text"
-                                    inputMode="decimal"
-                                    value={ing.price ?? ''}
-                                    placeholder="0"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                        handlePriceChange(ing.id, val);
-                                      }
-                                    }}
-                                    className="w-24 bg-green-50/30 border border-green-100 rounded-lg px-2 py-1.5 text-center font-bold text-green-700 focus:ring-2 focus:ring-green-500 outline-none shadow-sm"
-                                  />
-                                </td>
-                                <td className="px-4 py-4 text-center font-bold text-gray-600 bg-gray-50/30">
-                                  ${((ing.price * (mixItem?.percentage || 0)) / 100).toFixed(4)}
-                                </td>
-                                <td className="px-4 py-4 text-center">
-                                  <button 
-                                    onClick={() => removeIngredientFromMixture(ing.id)}
-                                    className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
+                          Object.entries(
+                            activeIngredients.reduce((acc, ing) => {
+                              const cat = getIngredientCategory(ing.name);
+                              if (!acc[cat]) acc[cat] = [];
+                              acc[cat].push(ing);
+                              return acc;
+                            }, {} as Record<string, Ingredient[]>)
+                          ).map(([category, ings]) => (
+                            <Fragment key={category}>
+                              <tr className="bg-gray-50/50">
+                                <td colSpan={7} className="px-6 py-2 border-y border-gray-100 font-bold text-[10px] text-gray-400 bg-gray-50/80 sticky right-0 z-20">
+                                  {category}
                                 </td>
                               </tr>
-                            );
-                          })
+                              {(ings as Ingredient[]).map((ing) => {
+                                const mixItem = mixture.find(m => m.ingredientId === ing.id);
+                                return (
+                                  <tr key={ing.id} className="hover:bg-gray-50 transition-colors group border-b border-gray-50">
+                                    <td className="px-6 py-4 font-bold text-gray-800 sticky right-0 bg-white group-hover:bg-gray-50 z-10">
+                                      <div className="flex flex-col gap-1">
+                                        <input 
+                                          type="text"
+                                          value={ing.name}
+                                          onChange={(e) => setIngredients(prev => prev.map(i => i.id === ing.id ? { ...i, name: e.target.value } : i))}
+                                          className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none hover:bg-gray-100 rounded px-2 py-1 transition-colors"
+                                        />
+                                        <span className="text-[9px] text-gray-400 block sm:hidden">ID: {ing.id}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-4 text-center border-x border-gray-50">
+                                      <input 
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={mixItem?.percentage ?? ''}
+                                        placeholder="0"
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                            handlePercentageChange(ing.id, val);
+                                          }
+                                        }}
+                                        className="w-24 bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-center font-bold text-gray-900 focus:ring-2 focus:ring-green-500 outline-none shadow-sm"
+                                      />
+                                    </td>
+                                    <td className="px-4 py-4 text-center font-mono font-bold text-blue-700 bg-blue-50/20 border-x border-gray-50">
+                                      {((parseFloat(mixItem?.percentage || '0') || 0) * 10).toFixed(2)} كغ
+                                    </td>
+                                    <td className="px-4 py-4 text-center font-mono font-bold text-indigo-700 bg-indigo-50/20 border-x border-gray-50">
+                                      {((parseFloat(mixItem?.percentage || '0') || 0) * 10 * batchSize).toFixed(2)} كغ
+                                    </td>
+                                    <td className="px-4 py-4 text-center">
+                                      <input 
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={ing.price ?? ''}
+                                        placeholder="0"
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                            handlePriceChange(ing.id, val);
+                                          }
+                                        }}
+                                        className="w-24 bg-green-50/30 border border-green-100 rounded-lg px-2 py-1.5 text-center font-bold text-green-700 focus:ring-2 focus:ring-green-500 outline-none shadow-sm"
+                                      />
+                                    </td>
+                                    <td className="px-4 py-4 text-center font-bold text-gray-600 bg-gray-50/30">
+                                      {((ing.price * (mixItem?.percentage || 0)) / 100).toFixed(4)}
+                                    </td>
+                                    <td className="px-4 py-4 text-center">
+                                      <button 
+                                        onClick={() => removeIngredientFromMixture(ing.id)}
+                                        className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </Fragment>
+                          ))
                         )}
                       </tbody>
                     </table>
@@ -2180,14 +2234,250 @@ export default function App() {
             </motion.div>
           )}
 
+          {activeTab === 'premix' && (
+            <motion.div
+              key="premix"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-8 pb-20"
+            >
+              {/* Premix Logic Header */}
+              <div className="bg-gradient-to-r from-amber-500 to-orange-600 rounded-3xl p-8 text-white shadow-xl">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                  <div className="flex items-center gap-6">
+                    <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-md">
+                      <Package className="w-10 h-10" />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-black">حاسبة البريمكس المركزي</h2>
+                      <p className="text-amber-100 opacity-90 font-medium">تحليل وتكلفة المكونات الصغرى (الإضافات والمعادن) المستخلصة من العليقة الحالية.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="bg-black/20 px-6 py-4 rounded-2xl border border-white/10 text-center backdrop-blur-md">
+                      <p className="text-[10px] font-bold uppercase opacity-60 mb-1 text-white">وزن البريمكس (كغم/طن)</p>
+                      <p className="text-3xl font-black">
+                        {(mixture.reduce((acc, curr) => {
+                          const ing = ingredients.find(i => i.id === curr.ingredientId);
+                          if (!ing) return acc;
+                          const name = ing.name.toLowerCase();
+                          // Exclude bulk
+                          if (name.includes('ذرة') || name.includes('corn') || name.includes('صويا') || name.includes('soy') || name.includes('كسبة') || name.includes('زيت') || name.includes('oil')) return acc;
+                          return acc + (parseFloat(curr.percentage) || 0) * 10;
+                        }, 0)).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Ingredients List in Premix */}
+                <div className="lg:col-span-2 space-y-6">
+                  <section className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="px-8 py-6 bg-gray-50 border-b border-gray-200">
+                      <h3 className="font-black text-gray-800 flex items-center gap-2">
+                        <ListChecks className="w-5 h-5 text-amber-600" />
+                        مكونات البريمكس الداخلة في الحساب
+                      </h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-right">
+                        <thead>
+                          <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                            <th className="px-8 py-4">المادة</th>
+                            <th className="px-8 py-4 text-center">الكمية (كغ/طن)</th>
+                            <th className="px-8 py-4 text-center">التكلفة ($)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {mixture.filter(item => {
+                            const ing = ingredients.find(i => i.id === item.ingredientId);
+                            if (!ing) return false;
+                            const name = ing.name.toLowerCase();
+                            return !(name.includes('ذرة') || name.includes('corn') || name.includes('صويا') || name.includes('soy') || name.includes('كسبة') || name.includes('زيت') || name.includes('oil'));
+                          }).map(item => {
+                            const ing = ingredients.find(i => i.id === item.ingredientId);
+                            const kgPerTon = (parseFloat(item.percentage) || 0) * 10;
+                            const cost = kgPerTon * (ing?.price || 0);
+                            return (
+                              <tr key={item.ingredientId} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-8 py-4 font-bold text-gray-700">{ing?.name}</td>
+                                <td className="px-8 py-4 text-center font-mono font-bold text-amber-700">{kgPerTon.toFixed(2)}</td>
+                                <td className="px-8 py-4 text-center font-mono text-gray-500">${cost.toFixed(2)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                </div>
+
+                {/* Premix Nutritional Analysis */}
+                <div className="space-y-6">
+                  <section className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden p-8">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-3 bg-amber-50 rounded-xl">
+                        <Activity className="w-6 h-6 text-amber-600" />
+                      </div>
+                      <h3 className="text-lg font-black text-gray-900">تركيز البريمكس المخصص</h3>
+                    </div>
+
+                    <div className="space-y-4">
+                      {(() => {
+                        const premixItems = mixture.filter(item => {
+                          const ing = ingredients.find(i => i.id === item.ingredientId);
+                          if (!ing) return false;
+                          const name = ing.name.toLowerCase();
+                          return !(name.includes('ذرة') || name.includes('corn') || name.includes('صويا') || name.includes('soy') || name.includes('كسبة') || name.includes('زيت') || name.includes('oil'));
+                        });
+                        const premixWeight = premixItems.reduce((acc, curr) => acc + (parseFloat(curr.percentage) || 0), 0);
+                        
+                        if (premixWeight === 0) return <div className="text-center py-10 text-gray-400">لا توجد إضافات في العليقة حالياً.</div>;
+
+                        return [
+                          { key: 'CP', label: 'البروتين الخام', unit: '%' },
+                          { key: 'dLys', label: 'اللايسين المهضوم', unit: '%' },
+                          { key: 'dMetCys', label: 'ميثيونين+سيستين', unit: '%' },
+                          { key: 'Ca', label: 'الكالسيوم', unit: '%' },
+                          { key: 'avP', label: 'الفوسفور المتاح', unit: '%' },
+                          { key: 'Na', label: 'الصوديوم', unit: '%' },
+                          { key: 'Cl', label: 'الكلور', unit: '%' },
+                          { key: 'choline', label: 'الكولين', unit: 'mg/kg' },
+                        ].map(nut => {
+                          const totalVal = premixItems.reduce((acc, curr) => {
+                            const ing = ingredients.find(i => i.id === curr.ingredientId);
+                            if (!ing) return acc;
+                            return acc + (ing.nutrition[nut.key as keyof Nutrition] || 0) * (parseFloat(curr.percentage) || 0);
+                          }, 0);
+                          const concentration = totalVal / premixWeight;
+
+                          return (
+                            <div key={nut.key} className="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
+                              <span className="text-xs font-bold text-gray-500">{nut.label}</span>
+                              <div className="text-right">
+                                <span className="text-sm font-black text-amber-700 font-mono">{concentration.toFixed(2)}</span>
+                                <span className="text-[10px] text-gray-400 mr-1">{nut.unit}</span>
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+
+                    <div className="mt-8 pt-6 border-t border-gray-100">
+                      <div className="bg-amber-900 rounded-2xl p-6 text-white text-center">
+                         <p className="text-[10px] font-bold uppercase opacity-60 mb-1">تكلفة طن البريمكس التقريبية</p>
+                         <p className="text-2xl font-black">
+                           {(() => {
+                             const premixItems = mixture.filter(item => {
+                               const ing = ingredients.find(i => i.id === item.ingredientId);
+                               if (!ing) return false;
+                               const name = ing.name.toLowerCase();
+                               return !(name.includes('ذرة') || name.includes('corn') || name.includes('صويا') || name.includes('soy') || name.includes('كسبة') || name.includes('زيت') || name.includes('oil'));
+                             });
+                             const weight = premixItems.reduce((acc, curr) => acc + (parseFloat(curr.percentage) || 0), 0);
+                             if (weight === 0) return 0;
+                             const totalCost = premixItems.reduce((acc, curr) => {
+                               const ing = ingredients.find(i => i.id === curr.ingredientId);
+                               return acc + ((ing?.price || 0) * (parseFloat(curr.percentage) || 0));
+                             }, 0);
+                             return ((totalCost / weight) * 1000).toLocaleString();
+                           })()} <span className="text-xs">$</span>
+                         </p>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {activeTab === 'results' && (
             <motion.div
               key="results"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-8 pb-20"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-8 pb-20 print:p-0"
             >
+              {/* Header Analysis Summary */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 no-print">
+                 <div className="lg:col-span-3 bg-white p-8 rounded-3xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-center gap-8">
+                    <div className="w-full md:w-64 h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                          <PolarGrid stroke="#e2e8f0" />
+                          <PolarAngleAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }} />
+                          <PolarRadiusAxis angle={30} domain={[0, 120]} tick={false} axisLine={false} />
+                          <Radar
+                            name="المتحقق"
+                            dataKey="actual"
+                            stroke="#16a34a"
+                            fill="#22c55e"
+                            fillOpacity={0.5}
+                          />
+                          <Radar
+                            name="الهدف"
+                            dataKey="target"
+                            stroke="#ef4444"
+                            fill="transparent"
+                            strokeDasharray="4 4"
+                          />
+                          <Tooltip />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex-1 space-y-4">
+                      <h3 className="text-xl font-black text-gray-900 border-r-4 border-green-600 pr-4">تحليل توازن العناصر الكبرى</h3>
+                      <p className="text-gray-500 text-sm leading-relaxed">
+                        يوضح المخطط مدى مطابقة القيم الفعلية للعليقة الحالية مع احتياجات سلالة Ross 308 الموصى بها. 
+                        الخط المتقطع الأحمر يمثل الهدف (100%)، بينما المساحة الخضراء تمثل ما تم تحقيقه فعلياً.
+                      </p>
+                      <div className="flex gap-3">
+                         <div className="flex items-center gap-2 text-[10px] font-bold text-green-600">
+                           <div className="w-3 h-3 bg-green-500 rounded-sm" /> المتحقق
+                         </div>
+                         <div className="flex items-center gap-2 text-[10px] font-bold text-red-500">
+                           <div className="w-3 h-3 border border-red-500 border-dashed rounded-sm" /> الهدف الموصى به
+                         </div>
+                      </div>
+                    </div>
+                 </div>
+                 <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-8 rounded-3xl text-white shadow-xl flex flex-col justify-center items-center text-center">
+                    <TrendingUp className="w-12 h-12 mb-4 opacity-50" />
+                    <p className="text-sm font-medium opacity-80 mb-2">كفاءة العليقة</p>
+                    <p className="text-4xl font-black mb-4">
+                      {(radarData.reduce((acc, curr) => acc + (curr.actual > 100 ? 200 - curr.actual : curr.actual), 0) / 6).toFixed(1)}%
+                    </p>
+                    <button 
+                      onClick={handlePrint}
+                      className="w-full py-3 bg-white text-indigo-600 rounded-2xl font-bold hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 shadow-lg"
+                    >
+                      <Printer className="w-5 h-5" />
+                      تحميل التقرير (PDF)
+                    </button>
+                 </div>
+              </div>
+
+              {/* Printable Format */}
+              <div className="print-only hidden print:block pt-10">
+                <div className="flex justify-between items-start mb-8 border-b-4 border-indigo-600 pb-6">
+                  <div>
+                    <h1 className="text-4xl font-black text-gray-900 leading-tight">تقرير صياغة عليقة الدواجن</h1>
+                    <p className="text-indigo-600 font-bold text-lg mt-1">محرك التغذية لقطاع التسمين السوري v2.1</p>
+                  </div>
+                  <div className="text-right text-sm">
+                    <p className="font-black text-gray-400 uppercase tracking-widest mb-1">بيانات العليقة</p>
+                    <p className="font-bold">التاريخ: {new Date().toLocaleDateString('ar-SY')}</p>
+                    <p className="font-bold">السلالة: Ross 308</p>
+                    <p className="font-bold text-indigo-600">المرحلة: {availablePhases[currentPhaseIndex]?.name}</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Syrian Model Control remains here as it's a dynamic toggle */}
               <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8 mb-8">
                 <h3 className="text-lg font-bold mb-6 flex items-center gap-2 border-r-4 border-green-600 pr-3">
